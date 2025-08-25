@@ -1,78 +1,27 @@
-/*
-<script setup lang="ts">
+<script setup>
 import {RouterLink, RouterView} from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import NavBar from "@/components/NavBar.vue";
+import AppFooter from "@/components/AppFooter.vue";
+
+const route = useRoute()
 </script>
 
 <template>
-  <div class="w-full flex items-center justify-center bg-gradient-to-r from-pink-500 to-purple-500">
-    <h1 class="text-4xl font-bold text-white">
-      🎉 Tailwind läuft!
-    </h1>
+    <NavBar />
+  <div class="flex items-center justify-center">
+    <div class="finite-plane">
+      <RouterView />
+    </div>
   </div>
+    <AppFooter />
 </template>
 
 <style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
-}
-
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
-}
-
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
-
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
-
-nav a:first-of-type {
-  border: 0;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
+    @reference "@/assets/main.css";
+  .finite-plane {
+    @apply inline-flex py-9 px-10 flex-col items-center gap-12 bg-DarkSlateGray rounded-md mx-auto;
   }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
-  }
-}
 </style>
 

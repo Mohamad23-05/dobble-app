@@ -1,36 +1,77 @@
 @import "tailwindcss";
-@import './base.css';
 
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  font-weight: normal;
+@theme{
+  --breakpoint-sm: 480px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 976px;
+
+  --color-DarkSlateGray-Light: #09a591;
+  --color-DarkSlateGray: #335C67;
+  --color-DarkSlateGray-Dark: #405b67;
+
+
+  --color-Vanilla-Light: #FFF4B3;
+  --color-Vanilla: #FFF4B0;
+  --color-Vanilla-Dark: #F6F5AC;
+
+
+  --color-HunyadiYellow-Light: #d3c842;
+  --color-HunyadiYellow: #dcb33d;
+  --color-HunyadiYellow-Dark: #e09f3e;
+
+
+  --color-Auburn-Light: #c2851e;
+  --color-Auburn: #b55824;
+  --color-Auburn-Dark: #9d2a2c;
+
+
+  --color-ChocolateCosmos-Light: #9e6c17;
+  --color-ChocolateCosmos: #7e3b13;
+  --color-ChocolateCosmos-Dark: #540B0E;
+
+
+
+
+  --color-caribbeanCurrent: #006D77;
+  --color-tiffanyBlue: #83C5BE;
+  --color-aliceBlue: #EDF6F9;
+  --color-paleDogwood: #FFDDD2;
+  --color-atomicTangerine: #E29578;
+
+
 }
 
-a,
-.green {
-  text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-  padding: 3px;
-}
 
-@media (hover: hover) {
-  a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
+
+body {
+  @apply px-8 bg-Vanilla min-h-screen text-black leading-relaxed text-base;
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    'Fira Sans',
+    'Droid Sans',
+    'Helvetica Neue',
+    sans-serif;
+
+  h1{
+    @apply font-bold text-HunyadiYellow-Dark text-5xl leading-normal;
+  }
+  h2{
+    @apply font-bold text-white text-3xl leading-normal;
+  }
+
+  p{
+    @apply font-light text-white text-2xl leading-normal;
+  }
+
+  a{
+    @apply text-Auburn-Light;
   }
 }
 
-@media (min-width: 1024px) {
-  body {
-    display: flex;
-    place-items: center;
-  }
-
-  #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
-  }
-}
