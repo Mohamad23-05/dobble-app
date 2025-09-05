@@ -13,7 +13,7 @@ export default defineConfig({
   plugins: [
     vue(),
     svgLoader(),
-    vueDevTools(),
+    // vueDevTools(),
     tailwind(),
   ],
   resolve: {
