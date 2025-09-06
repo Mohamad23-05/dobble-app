@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional, Literal
 
 from ..services.dobble_logic import get_params, generate_projective_plane as gen_plane
@@ -42,20 +42,28 @@ def validate(
 
 
 class GenerateRequest(BaseModel):
-    n: int
+    n: int = Field(..., ge=2)
+    symbols: List[str]  # length must be n^2 + n + 1
 
 
 class GenerateResponse(BaseModel):
-    cards_idx: List[List[int]]
     symbols_per_card: int
     num_cards: int
+    cards: List[List[str]]
 
 
 @router.post("/generate", response_model=GenerateResponse)
 def generate(req: GenerateRequest):
-    cards = gen_plane(req.n)
+    expected = req.n ** 2 + req.n + 1
+    if len(req.symbols) != expected:
+        raise ValueError(f"Expected {expected} symbols, got {len(req.symbols)}")
+
+    card_idx = gen_plane(req.n)
+
+    cards = [[req.symbols[i] for i in card] for card in card_idx]
+
     return {
-        "cards_idx": cards,
         "symbols_per_card": req.n + 1,
-        "num_cards": req.n ** 2 + req.n + 1,
+        "num_cards": expected,
+        "cards": cards,
     }

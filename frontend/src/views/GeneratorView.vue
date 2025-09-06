@@ -1,24 +1,23 @@
 <!-- GeneratorForm.vue -->
 <script setup lang="ts">
-import {ref} from 'vue'
+import {userGenerator} from "@/composables/useGenerator.ts";
 
-/** form state */
-const mode = ref<'n' | 'k' | 'sc'>('n')         // n, k, s/c
-const howMany = ref<number | null>(null)
+const {
+  // state
+  mode, howMany, notation, howManyPlaceholder,
+  n, symbolsPerCard, totalSymbols,
+  valid, loading, error,
 
-const notation = ref<'n' | 'l' | 's'>('n')      // numbers, letters, symbols
-const useCustomSymbols = ref(false)
+  // cards & symbols
+  cards, universe, availableSymbols, selectedSymbols,
 
-const submit = () => {
-  // do what you need here or emit an event
-  // e.g., emit('submit', { mode: mode.value, howMany: howMany.value, notation: notation.value, useCustomSymbols: useCustomSymbols.value })
-  console.log({
-    mode: mode.value,
-    howMany: howMany.value,
-    notation: notation.value,
-    useCustomSymbols: useCustomSymbols.value
-  })
-}
+  // computed
+  canGenerate, generateCtaText, generateDisabledReason,
+
+  // actions
+  validateForm, toggleSymbol, generate,
+
+} = userGenerator();
 </script>
 
 <template>
@@ -27,7 +26,7 @@ const submit = () => {
   </h2>
 
   <div class="content-section">
-    <form class="panel mb-2" @submit.prevent="submit" aria-labelledby="g-title">
+    <form class="panel mb-2" @submit.prevent="validateForm" aria-labelledby="g-title">
       <h2 id="g-title">
         Do you want to enter the order of the finite plane (n), symbol/card (s/c) or number of cards
         (k)?
@@ -63,7 +62,7 @@ const submit = () => {
           class="qty"
           type="number"
           min="0"
-          :placeholder="mode === 'n' ? 'n' : mode === 'k' ? 'k' : 's/c'"
+          :placeholder="howManyPlaceholder"
           v-model.number="howMany"
           aria-label="how many"
         />
@@ -96,19 +95,70 @@ const submit = () => {
             <span>s</span>
           </label>
         </fieldset>
-
-        <label v-if="notation === 's'" class="own-symbols">
-          <input type="checkbox" v-model="useCustomSymbols"/>
-          <span>with my own symbols</span>
-        </label>
       </div>
 
       <button class="submit" type="submit">submit!</button>
+
+      <!-- status -->
+      <p v-if="notation === 'l'" class="text-sm opacity-75 mt-1">
+        Letters available: {{ 26 }}. Max feasible n: {{
+          [2, 3, 4, 5, 7, 8, 9, 13].filter(n => n * n + n + 1 <= 26).join(', ') || 'none'
+        }}.
+      </p>
+
+      <div v-if="loading" class="mt-2  text-Auburn">Checking…</div>
+      <div v-if="error" class="mt-2 px-3 py-2 rounded-md bg-Vanilla text-red-700">{{ error }}</div>
+      <div v-if="valid"
+           class="mt-2 px-3 py-2 rounded-md text-sm bg-Vanilla text-DarkSlateGray">
+        n: {{ n }} of the finite plane with symbols {{ symbolsPerCard }} each card with total
+        symbols: {{ totalSymbols }}
+      </div>
     </form>
-    <div v-if="useCustomSymbols" class="content my-2"></div>
-    <div v-else class="bg-Auburn py-5 rounded-md my-2"></div>
-    <div class="content mt-2"></div>
   </div>
+  <!-- Generate button -->
+  <div class="mt-3 flex items-center gap-3">
+    <button
+      class="submit disabled:opacity-50"
+      :disabled="!canGenerate || loading"
+      @click="generate"
+      :title="generateDisabledReason"
+    >
+      {{ generateCtaText }}
+    </button>
+
+    <!-- Optional helper text showing why it’s disabled -->
+    <span v-if="!canGenerate && generateDisabledReason" class="text-sm opacity-80">
+    {{ generateDisabledReason }}
+  </span>
+  </div>
+
+  <!-- Results -->
+  <div v-if="cards.length" class="mt-6">
+    <h3 class="text-xl font-bold mb-3">Generated Cards</h3>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div
+        v-for="(card, idx) in cards"
+        :key="idx"
+        class="border rounded-lg p-3 bg-white shadow text-center"
+      >
+        <h4 class="font-semibold mb-2">Card {{ idx + 1 }}</h4>
+        <div class="flex flex-wrap justify-center gap-2">
+        <span
+          v-for="symbol in card"
+          :key="symbol"
+          class="px-2 py-1 rounded bg-gray-100 border"
+        >
+          <template v-if="symbol.startsWith('data:') || symbol.endsWith('.png')">
+            <img :src="symbol" alt="" class="h-8 w-8 object-contain"/>
+          </template>
+          <template v-else>{{ symbol }}</template>
+        </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </template>
 
 
@@ -181,7 +231,7 @@ const submit = () => {
 
 /* number input */
 .qty {
-  @apply flex flex-col justify-between items-center gap-x-6 text-2xl text-DarkSlateGray bg-Vanilla py-1.5 px-3 rounded-md;
+  @apply flex flex-col w-20 justify-between items-center gap-x-3 text-2xl text-DarkSlateGray bg-Vanilla py-1.5 px-3 rounded-md;
   border: 4px solid var(--color-Auburn);
   box-shadow: 0 1px 0 rgba(255, 255, 255, .4) inset, 0 1px 2px gray;
 }
