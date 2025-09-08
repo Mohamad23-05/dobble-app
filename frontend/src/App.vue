@@ -7,16 +7,19 @@ import AppFooter from "@/components/AppFooter.vue";
 
 const route = useRoute()
 </script>
-
+<!-- App.vue -->
 <template>
-  <NavBar/>
-  <div class="flex flex-col">
-    <main class="main-container-styler">
+  <div class="min-h-screen flex flex-col">   <!-- full height container -->
+    <NavBar/>
+
+    <main class="flex-1">                     <!-- takes remaining space -->
       <RouterView/>
     </main>
-    <AppFooter/>
+
+    <AppFooter/>                             <!-- sits at bottom -->
   </div>
 </template>
+
 
 <style scoped>
 @reference "@/assets/main.css";

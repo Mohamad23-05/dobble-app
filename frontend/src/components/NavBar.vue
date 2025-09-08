@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import {ref} from 'vue'
 import DobbleLogo from '@/assets/svgs/dobbleLogo.svg'
 import hamMenu from '@/assets/svgs/menu-burger.svg'
+
 const isOpen = ref(false)
 const toggle = () => (isOpen.value = !isOpen.value)
 const close = () => (isOpen.value = false)
@@ -10,7 +11,7 @@ const close = () => (isOpen.value = false)
 <template>
   <div class="nav-style">
     <RouterLink to="/" class="flex items-center" @click="close">
-      <DobbleLogo />
+      <DobbleLogo class="w-40 md:w-40 lg:w-52"/>
     </RouterLink>
 
     <!-- Desktop links: show from md and up -->
@@ -52,14 +53,17 @@ const close = () => (isOpen.value = false)
 
 <style scoped>
 /* keep your styles, but don't set display on nav-pages */
-  @reference "@/assets/main.css";
+@reference "@/assets/main.css";
 
 .nav-style {
   @apply flex px-5 py-5 mb-9 items-center justify-between bg-DarkSlateGray rounded-b-md;
 }
+
 .nav-pages {
-  @apply items-center self-stretch; /* removed 'flex' so hidden/md:flex works */
+  @apply items-center self-stretch;
+  /* removed 'flex' so hidden/md:flex works */
 }
+
 .nav-link {
   @apply text-HunyadiYellow-Dark px-3 py-2 rounded-md text-2xl;
 }

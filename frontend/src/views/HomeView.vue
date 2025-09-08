@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import breakLine from '@/assets/svgs/break-line.svg';
-// import FanoPlane from '@/assets/svgs/Fano-Ebene-farbig.svg';
-const FanoPlane = "@/assets/svgs/Fano-Ebene-mono.png";
+import FanoPlane from '@/assets/svgs/Fano-Ebene-farbig.svg';
 </script>
 
 <template>
@@ -29,9 +28,10 @@ const FanoPlane = "@/assets/svgs/Fano-Ebene-mono.png";
       <h2>
         A very popular example of the projective plane is the Fano plane:
       </h2>
-      <div class="py-5">
-        <img src="@/assets/svgs/Fano-Ebene-mono.png" alt="">
+      <div class="w-full flex justify-center">
+        <FanoPlane class="w-1/4 h-auto"/> <!-- 66% of screen width -->
       </div>
+
     </div>
 
     <breakLine class="mx-auto h-auto my-4 lg:w-4xl sm:w-48"/>
@@ -41,7 +41,7 @@ const FanoPlane = "@/assets/svgs/Fano-Ebene-mono.png";
         With this knowledge, we have the possibility to generate the game
         <a href="https://www.dobblegame.com/en/homepage/" target="_blank">Dobble</a>.
       </h2>
-      <p>
+      <p class="px-3 md:px-0">
         <RouterLink to="/generator" class="link"> Generate</RouterLink>
         and create your own card sets.
       </p>
@@ -55,14 +55,16 @@ const FanoPlane = "@/assets/svgs/Fano-Ebene-mono.png";
 
 .plane-def {
   @apply flex flex-col items-center gap-2 sm:gap-9;
+  @apply px-3.5 md:px-1.5;
 }
 
 .plane-prop {
-  @apply flex flex-col items-start gap-3 sm:gap-7  list-disc list-inside;
+  @apply flex flex-col items-start gap-1 md:gap-7  list-disc list-inside;
 }
 
 li {
   @apply text-white font-light leading-normal text-2xl;
+  @apply text-xl md:text-2xl;
 }
 
 .fano-plane {
