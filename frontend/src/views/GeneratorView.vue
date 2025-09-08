@@ -1,23 +1,26 @@
 <!-- GeneratorForm.vue -->
 <script setup lang="ts">
 import {userGenerator} from "@/composables/useGenerator.ts";
+import SymbolsPicker from "@/components/SymbolsPicker.vue"
+
+// add all available PNGs
+const defaultSymbols = Object
+  .entries(import.meta.glob('@/assets/symbols/*.{png,jpg,jpeg,webp,svg}', {
+    eager: true,
+    import: 'default',   // returns URL string for each asset
+  }))
+  .sort(([a], [b]) => a.localeCompare(b))
+  .map(([, url]) => url as string);
 
 const {
-  // state
   mode, howMany, notation, howManyPlaceholder,
   n, symbolsPerCard, totalSymbols,
   valid, loading, error,
-
-  // cards & symbols
-  cards, universe, availableSymbols, selectedSymbols,
-
-  // computed
+  cards, selectedSymbols,
   canGenerate, generateCtaText, generateDisabledReason,
+  validateForm, generate,
+} = userGenerator()
 
-  // actions
-  validateForm, toggleSymbol, generate,
-
-} = userGenerator();
 </script>
 
 <template>
@@ -136,6 +139,19 @@ const {
 
     </form>
   </div>
+
+  <!-- show picker for symbols mode -->
+  <div v-if="valid && notation === 's'" class="panel mt-4">
+    <SymbolsPicker
+      v-model="selectedSymbols"
+      :totalSymbols="totalSymbols || 0"
+      :defaultSymbols="defaultSymbols"
+      :allowUpload="true"
+      :maxFileSizeMB="2"
+      @error="msg => (/* show nicely or log */ console.warn(msg))"
+    />
+  </div>
+
   <!-- Generate button -->
   <div class="mt-3 flex items-center gap-3">
     <button
