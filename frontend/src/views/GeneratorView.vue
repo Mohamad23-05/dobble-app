@@ -29,7 +29,7 @@ const {
   </h1>
 
   <div class="content">
-    <form class=" mb-2" @submit.prevent="validateForm" aria-labelledby="g-title">
+    <form class="mb-2" @submit.prevent="validateForm" aria-labelledby="g-title">
       <div class="panel pt-2">
         <h2 class="panel-title" id="g-title">
           Do you want to enter the order of the finite plane (n), symbol/card (s/c) or number of

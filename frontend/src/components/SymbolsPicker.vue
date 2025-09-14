@@ -87,43 +87,92 @@ function toDataURL(f: File) {
 
 
 <template>
-  <section class="space-y-3">
+  <section class="w-full px-4 py-5">
+    <!-- Header -->
     <div class="flex items-center justify-between">
       <h3 class="text-xl font-bold">Choose exactly {{ totalSymbols }} symbols</h3>
       <span class="text-sm opacity-75">Selected: {{ selected.length }} / {{ totalSymbols }}</span>
     </div>
 
-    <!-- default palette -->
-    <div class="grid grid-cols-[repeat(auto-fill,minmax(72px,1fr))] gap-2">
-      <button
-        v-for="sym in palette"
-        :key="sym"
-        type="button"
-        @click="toggle(sym)"
-        class="border rounded p-2 h-[72px] flex items-center justify-center overflow-hidden"
-        :class="selected.includes(sym) ? 'border-yellow-500 bg-yellow-100' : 'border-gray-300 bg-white'"
-        :aria-pressed="selected.includes(sym)"
-      >
-        <img :src="sym" alt="" class="max-h-full max-w-full object-contain"/>
-      </button>
-    </div>
-
-    <!-- uploads -->
-    <div v-if="allowUpload !== false" class="space-y-2">
-      <div
-        class="border-2 border-dashed rounded-md p-4 text-center cursor-pointer"
-        :class="dragOver ? 'border-amber-500 bg-amber-50' : 'border-gray-300'"
-        @dragover="onDragOver"
-        @dragleave="onDragLeave"
-        @drop="onDrop"
-      >
-        <p class="text-sm opacity-80">Drag & drop images here, or</p>
-        <label class="inline-block mt-1 px-3 py-1 rounded bg-gray-100 border cursor-pointer">
-          Browse files
-          <input type="file" accept="image/*" multiple class="hidden" @change="onUploadFiles"/>
-        </label>
+    <!-- Two-column layout -->
+    <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] md:items-start gap-4">
+      <!-- LEFT: default palette -->
+      <div>
+        <h4 class="mb-2 font-semibold opacity-80">From site symbols</h4>
+        <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-9 gap-3">
+          <button
+            v-for="sym in palette"
+            :key="sym"
+            type="button"
+            @click="toggle(sym)"
+            class="border rounded p-2 h-[90px] flex items-center justify-center overflow-hidden transition"
+            :class="selected.includes(sym) ? 'border-yellow-500 bg-yellow-100' : 'border-gray-300 bg-white hover:border-gray-400'"
+            :aria-pressed="selected.includes(sym)"
+          >
+            <img :src="sym" alt="" class="max-h-full max-w-full object-contain"/>
+          </button>
+        </div>
       </div>
-      <p class="text-xs opacity-60">PNG/JPG/WebP/SVG, up to {{ maxFileSizeMB ?? 2 }} MB each.</p>
+
+
+      <!-- VERTICAL DIVIDER -->
+      <div class="hidden md:block h-full mx-2 border-l border-Vanilla"></div>
+
+      <!-- RIGHT: uploads -->
+      <div v-if="allowUpload !== false">
+        <h4 class="mb-2 font-semibold opacity-80">Upload your own</h4>
+
+        <!-- Upload box -->
+        <div
+          class="border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition"
+          :class="dragOver ? 'border-amber-500 bg-amber-50' : 'border-white/40 hover:border-white/60'"
+          @dragover="onDragOver"
+          @dragleave="onDragLeave"
+          @drop="onDrop"
+        >
+          <p class="text-sm opacity-80">Drag & drop images here, or</p>
+          <label
+            class="inline-block mt-2 px-3 py-1 rounded bg-gray-100 border text-DarkSlateGray cursor-pointer"
+          >
+            Browse files
+            <input type="file" accept="image/*" multiple class="hidden" @change="onUploadFiles"/>
+          </label>
+          <p class="mt-2 text-xs opacity-60">
+            PNG/JPG/WebP/SVG, up to {{ maxFileSizeMB ?? 2 }} MB each.
+          </p>
+        </div>
+
+        <!-- Preview of uploaded images -->
+        <div v-if="selected.length" class="mt-4">
+          <h5 class="mb-2 text-sm font-medium opacity-80">Uploaded images</h5>
+          <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+            <div
+              v-for="(sym, i) in selected"
+              :key="i"
+              class="relative border rounded overflow-hidden group"
+            >
+              <img
+                :src="sym"
+                alt=""
+                class="w-full h-24 object-contain py-2 bg-gray-100"
+              />
+              <!-- Delete button -->
+              <button
+                type="button"
+                @click="selected.splice(i, 1)"
+                class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center
+                  shadow-md hover:bg-red-600 transition-opacity opacity-0 group-hover:opacity-100 text-xs"
+                title="Remove"
+              >
+                ✕
+              </button>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+
     </div>
   </section>
 </template>
