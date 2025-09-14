@@ -1,202 +1,158 @@
-import {ref, computed, watch} from 'vue';
+import {ref, computed, watch} from 'vue'
 import axios from 'axios'
 
-const backendLink = "http://127.0.0.1:8000"
+const backendLink = import.meta.env.VITE_API_BASE ?? 'http://127.0.0.1:8000'
+
+// finite letters set (you said you only allow A..Z)
+const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
+const VALID_ORDERS = [2, 3, 4, 5, 7, 8, 9, 13]
+const feasibleOrders = (max: number) =>
+  VALID_ORDERS.filter(n => n * n + n + 1 <= max)
 
 export function userGenerator() {
-  /** form (always visible) **/
-  const mode = ref<"n" | "k" | "sc">("n");
-  const notation = ref<"n" | "l" | "s">("n");
-  const howMany = ref<number | null>(null);
+  // -------- form state --------
+  const mode = ref<'n' | 'k' | 'sc'>('n')
+  const notation = ref<'n' | 'l' | 's'>('n')
+  const howMany = ref<number | null>(null)
 
-  // placeholder that reacts to mode
-  const howManyPlaceholder = computed(() => {
-    return mode.value === 'n' ? 'n' : mode.value === 'k' ? 'k' : 's/c'
-  })
-
-  // when mode changes, clear the input so the new placeholder is visible
+  const howManyPlaceholder = computed(() =>
+    mode.value === 'n' ? 'n' : mode.value === 'k' ? 'k' : 's/c'
+  )
+  // reset input so placeholder becomes visible
   watch(mode, () => {
     howMany.value = null
   })
 
+  // -------- derived / validation --------
+  const n = ref<number | null>(null)
+  const symbolsPerCard = ref<number | null>(null)
+  const totalSymbols = ref<number | null>(null)
+  const valid = ref(false)
+  const loading = ref(false)
+  const error = ref<string | null>(null)
 
-  /** form validate **/
-  const n = ref<number | null>(null);
-  const symbolsPerCard = ref<number | null>(null);
-  const totalSymbols = ref<number | null>(null);
-  const valid = ref(false);
-  const loading = ref(false);
-  const error = ref<string | null>(null);
+  // -------- results --------
+  const cards = ref<string[][]>([])
 
-  const cards = ref<string[][]>([]) // <- store cards from backend
+  // -------- symbols (symbols mode only) --------
+  const selectedSymbols = ref<string[]>([]) // v-model with SymbolsPicker
 
-  /** universe that will be sent to the backend **/
-  const universe = ref<string[]>([]) // final list
-
-  /** only for notation === 's' **/
-  const availableSymbols = ref<string[]>([])
-  const selectedSymbols = ref<string[]>([])
-
+  // Button state / text
   const canGenerate = computed(() => {
-    if (!valid.value || !n.value || !totalSymbols.value) return false;
-    if (notation.value === "s") return selectedSymbols.value.length === totalSymbols.value;
-    return universe.value.length === totalSymbols.value;
+    if (!valid.value || !n.value || !totalSymbols.value) return false
+    // symbols require exact user selection count
+    if (notation.value === 's') return selectedSymbols.value.length === totalSymbols.value
+    // numbers/letters are auto-built in generate()
+    return true
   })
 
-  // inside userGenerator()
   const generateCtaText = computed(() => {
-    // nice CTA text, shows how many cards we’ll make when we know n
-    if (!n.value) return "Generate Cards"
+    if (!n.value) return 'Generate Cards'
     const k = n.value ** 2 + n.value + 1
     return `Generate ${k} cards`
   })
 
   const generateDisabledReason = computed(() => {
-    if (!valid.value) return "Validate the form first"
-    if (!n.value || !totalSymbols.value) return "Missing derived values"
-    if (notation.value === "s" && selectedSymbols.value.length !== totalSymbols.value) {
+    if (!valid.value) return 'Validate the form first'
+    if (!n.value || !totalSymbols.value) return 'Missing derived values'
+    if (notation.value === 's' && selectedSymbols.value.length !== totalSymbols.value) {
       return `Pick exactly ${totalSymbols.value} symbols`
     }
-    if (notation.value !== "s" && universe.value.length !== totalSymbols.value) {
-      return "Universe not ready"
-    }
-    return ""
+    return ''
   })
 
-  // inside userGenerator()
-
-// Choose the exact letters you allow:
-  const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")        // 26
-
-// (optional) if you want to show which n are possible with this LETTERS size:
-  const VALID_ORDERS = [2, 3, 4, 5, 7, 8, 9, 13]
-
-  function feasibleOrders(maxSymbols: number) {
-    return VALID_ORDERS.filter(n => n * n + n + 1 <= maxSymbols)
-  }
-
-
-  /** helpers **/
-  function indexToLetter(idx: number): string {
-    let res = '', x = idx;
-    while (x >= 0) {
-      res = String.fromCharCode(65 + (x % 26)) + res;
-      x = Math.floor(x / 26) - 1;
-    }
-    return res
-  }
-
-  function buildLetter(count: number) {
-    return Array.from({length: count}, (_, i) => indexToLetter(i))
-  }
-
-  function buildNumbers(count: number) {
-    return Array.from({length: count}, (_, i) => String(i))
-  }
-
-  const defaultEmojis = ["⭐", "🌙", "🔥", "💧", "🍀", "🎯", "⚡", "🍎", "🚀", "🎵", "🧩",
-    "🎈", "🎁", "🪙", "💎", "⚽", "🏀", "🎱", "🧸", "🦄", "🐝", "🐞", "🦋", "🌸", "🌻", "🌈",
-    "🚗", "🚲", "🧭", "📚", "✏️", "🔑", "🔧", "🔗", "⌛", "🧪", "🔬", "🧲", "📷", "🎬", "🎮", "🕹️"];
-
-
-  /** actions **/
+  // -------- actions --------
   async function validateForm() {
-    loading.value = true;
-    error.value = null;
-    valid.value = false;
-    n.value = null;
-    symbolsPerCard.value = null;
-    totalSymbols.value = null;
-    universe.value = [];
-    availableSymbols.value = [];
-    selectedSymbols.value = [];
+    loading.value = true
+    error.value = null
+    valid.value = false
+    n.value = null
+    symbolsPerCard.value = null
+    totalSymbols.value = null
+    cards.value = []
+    selectedSymbols.value = []
 
     try {
-      const {data} = await axios.get(backendLink + "/dobble/validate", {
-        params: {mode: mode.value, how_many: howMany.value ?? 0} // ✅ snake_case
+      const {data} = await axios.get(`${backendLink}/dobble/validate`, {
+        params: {mode: mode.value, how_many: howMany.value ?? 0},
       })
       if (!data.valid) {
         error.value = data.message;
-        return;
+        return
       }
 
-      n.value = data.n;
-      symbolsPerCard.value = data.symbols_per_card      // ✅ correct field
-      totalSymbols.value = data.num_cards;
-      valid.value = true;
+      n.value = data.n
+      symbolsPerCard.value = data.symbols_per_card
+      totalSymbols.value = data.num_cards
 
-      if (notation.value === "n") {
-        universe.value = buildNumbers(totalSymbols.value!)
-      } else if (notation.value === "l") {
+      // if letters are finite, ensure we have enough
+      if (notation.value === 'l') {
         const need = totalSymbols.value!
         const have = LETTERS.length
         if (need > have) {
-          const feasible = feasibleOrders(have) // e.g., [2,3,4] for 26 letters
-          valid.value = false
-          error.value = `Not enough letters: need ${need}, but only ${have} available. `
-            + (feasible.length
-              ? `Pick a smaller order (n ∈ { ${feasible.join(", ")} }) or switch to numbers/symbols.`
-              : `Decrease n or choose another notation.`)
+          const feas = feasibleOrders(have)
+          error.value =
+            `Not enough letters: need ${need}, only ${have} available. ` +
+            (feas.length
+              ? `Try smaller n (∈ { ${feas.join(', ')} }) or switch notation.`
+              : `Decrease n or use numbers/symbols.`)
           return
         }
-        // OK: use the first 'need' letters
-        universe.value = LETTERS.slice(0, need)
-      } else {
-        // symbols mode: show picker; user selects exactly totalSymbols items
-        // availableSymbols.value = [your PNG URLs repeated to length ...]
       }
 
+      valid.value = true
     } catch (e: any) {
-      error.value = e?.response?.data?.detail || "Validation failed";
-      throw e;
+      error.value = e?.response?.data?.detail || 'Validation failed'
     } finally {
-      loading.value = false;
+      loading.value = false
     }
   }
 
-
-  function toggleSymbol(sym: string) {
-    const i = selectedSymbols.value.indexOf(sym);
-    if (i >= 0) selectedSymbols.value.splice(i, 1);
-    else if (selectedSymbols.value.length < (totalSymbols.value ?? 0)) selectedSymbols.value.push(sym);
-  }
-
-  //TODO: UploadSymbols
-
+  // helper: build numbers quickly
+  const buildNumbers = (count: number) =>
+    Array.from({length: count}, (_, i) => String(i))
 
   async function generate() {
     if (!n.value || !totalSymbols.value) return
-    let payloadSymbols = universe.value
-    if (notation.value === "s") {
+
+    // Build payload symbols on the fly based on notation
+    let payloadSymbols: string[]
+    if (notation.value === 'n') {
+      payloadSymbols = buildNumbers(totalSymbols.value)
+    } else if (notation.value === 'l') {
+      payloadSymbols = LETTERS.slice(0, totalSymbols.value)
+    } else {
+      // symbols
       if (selectedSymbols.value.length !== totalSymbols.value) return
       payloadSymbols = selectedSymbols.value.slice()
     }
+
     try {
-      const {data} = await axios.post(backendLink + "/dobble/generate", {
+      const {data} = await axios.post(`${backendLink}/dobble/generate`, {
         n: n.value,
         symbols: payloadSymbols,
       })
-      cards.value = data.cards // ✅ save response
+      cards.value = data.cards
       return data
     } catch (e: any) {
-      error.value = e?.response?.data?.detail || "Generation failed"
+      error.value = e?.response?.data?.detail || 'Generation failed'
       throw e
     }
   }
 
   return {
-    //state
-    mode, howMany, notation, howManyPlaceholder,
+    // state
+    mode, notation, howMany, howManyPlaceholder,
     n, symbolsPerCard, totalSymbols,
     valid, loading, error,
 
-    //universe / symbols
-    cards, universe, availableSymbols, selectedSymbols,
+    // results & selection
+    cards, selectedSymbols,
 
-    //computed
+    // computed
     canGenerate, generateCtaText, generateDisabledReason,
 
-    //actions
-    validateForm, toggleSymbol, generate
+    // actions
+    validateForm, generate,
   }
 }
