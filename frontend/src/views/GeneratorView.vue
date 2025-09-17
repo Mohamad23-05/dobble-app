@@ -1,6 +1,6 @@
 <!-- GeneratorForm.vue -->
 <script setup lang="ts">
-import {userGenerator} from "@/composables/useGenerator.ts";
+import {buildSymbolDefs, exportPdf, userGenerator} from "@/composables/useGenerator.ts";
 import SymbolsPicker from "@/components/SymbolsPicker.vue"
 
 // add all available PNGs
@@ -21,6 +21,16 @@ const {
   validateForm, generate,
 } = userGenerator()
 
+async function onExport() {
+  const defs = buildSymbolDefs(notation.value, totalSymbols.value!, selectedSymbols.value)
+  await exportPdf({
+    n: n.value!,
+    symbolsPerCard: symbolsPerCard.value!,
+    numCards: totalSymbols.value!,
+    cards: cards.value,
+    symbolDefs: defs,
+  })
+}
 </script>
 
 <template>
@@ -167,6 +177,18 @@ const {
     <span v-if="!canGenerate && generateDisabledReason" class="text-sm opacity-80">
     {{ generateDisabledReason }}
   </span>
+  </div>
+  <div v-if="cards.length" class="mt-6">
+    <h3 class="text-xl font-bold mb-3">Generated Cards</h3>
+
+    <button
+      class="submit mt-4"
+      @click="onExport"
+    >
+      Export to PDF
+    </button>
+
+    <!-- Your cards preview -->
   </div>
 
   <!-- Results -->

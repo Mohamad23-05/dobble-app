@@ -1,7 +1,7 @@
 import {ref, computed, watch} from 'vue'
 import axios from 'axios'
 
-const backendLink = import.meta.env.VITE_API_BASE ?? 'http://127.0.0.1:8000'
+const backendLink = import.meta.env.VITE_API_BASE ?? 'http://127.0.0.1:8000/dobble'
 
 // finite letters set (you said you only allow A..Z)
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
@@ -73,7 +73,7 @@ export function userGenerator() {
     selectedSymbols.value = []
 
     try {
-      const {data} = await axios.get(`${backendLink}/dobble/validate`, {
+      const {data} = await axios.get(`${backendLink}/validate`, {
         params: {mode: mode.value, how_many: howMany.value ?? 0},
       })
       if (!data.valid) {
@@ -128,7 +128,7 @@ export function userGenerator() {
     }
 
     try {
-      const {data} = await axios.post(`${backendLink}/dobble/generate`, {
+      const {data} = await axios.post(`${backendLink}/generate`, {
         n: n.value,
         symbols: payloadSymbols,
       })
@@ -155,4 +155,101 @@ export function userGenerator() {
     // actions
     validateForm, generate,
   }
+}
+
+
+// Build `symbols` array for /export/pdf from your notation & selections.
+// For numbers/letters, ids are the text itself; for images, ids are the data URL.
+export function buildSymbolDefs(notation: 'n' | 'l' | 's', totalSymbols: number, selectedSymbols: string[]) {
+  if (notation === 's') {
+    // images: data URLs (or file URLs) the user picked
+    const uniq = Array.from(new Set(selectedSymbols.slice(0, totalSymbols)))
+    return uniq.map(src => ({id: src, type: 'image' as const, src}))
+  }
+  if (notation === 'n') {
+    return Array.from({length: totalSymbols}, (_, i) => {
+      const t = String(i)
+      return {
+        id: t,
+        type: 'text' as const,
+        text: t,
+        font_family: 'Helvetica-Bold',
+        font_weight: 700
+      }
+    })
+  }
+  // 'l'
+  const letters = LETTERS.slice(0, totalSymbols)
+  return letters.map(t => ({
+    id: t,
+    type: 'text' as const,
+    text: t,
+    font_family: 'Helvetica-Bold',
+    font_weight: 700
+  }))
+}
+
+// Call this from your component to download the PDF.
+export async function exportPdf({
+                                  n,
+                                  symbolsPerCard,
+                                  numCards,
+                                  cards,
+                                  symbolDefs,
+                                }: {
+  n: number
+  symbolsPerCard: number
+  numCards: number
+  cards: string[][]
+  symbolDefs: Array<
+    | { id: string; type: 'text'; text: string; font_family?: string; font_weight?: number }
+    | { id: string; type: 'image'; src: string }
+  >
+}) {
+  const payload = {
+    n,
+    symbols_per_card: symbolsPerCard,
+    num_cards: numCards,
+    cards,
+    symbols: symbolDefs,
+    page: {size: 'A4', orientation: 'portrait', margin_mm: 10},
+    card: {diameter_mm: 80, stroke_mm: 0.4, per_page: 6, cut_marks: true, bleed_mm: 0},
+    randomization: {
+      seed: null,
+      rotation_mode: 'steps90',                 // <- use your new modes: 'any' | 'bounded' | 'steps90' | 'steps'
+      rotation_deg: {min: 0, max: 360},       // used by 'any'/'bounded'
+      scale: {min: 0.8, max: 1.1},
+      angular_jitter_deg: 6,
+      radial_jitter_mm: 1.5,
+      ring_strategy: 'auto',
+    },
+    options: {embed_fonts: true, image_dpi: 300, safe_mode: true},
+  }
+
+  try {
+    // ✅ request the PDF
+    const res = await axios.post(`${backendLink}/export/pdf`, payload, {
+      responseType: 'blob',
+    })
+
+    // ✅ success: download the PDF
+    const blob = new Blob([res.data], {type: 'application/pdf'})
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'dobble_cards.pdf'
+    a.click()
+    URL.revokeObjectURL(url)
+
+  } catch (err: any) {
+    // ❌ error: try to read JSON text returned by FastAPI
+    const blob = err?.response?.data
+    if (blob instanceof Blob) {
+      const text = await blob.text()
+      console.error("Export PDF failed:", text)
+    } else {
+      console.error("Export PDF failed:", err)
+    }
+  }
+
 }
