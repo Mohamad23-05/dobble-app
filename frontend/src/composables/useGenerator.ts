@@ -196,6 +196,7 @@ export async function exportPdf({
                                   numCards,
                                   cards,
                                   symbolDefs,
+                                  onProgress, // optional progress callback
                                 }: {
   n: number
   symbolsPerCard: number
@@ -205,6 +206,10 @@ export async function exportPdf({
     | { id: string; type: 'text'; text: string; font_family?: string; font_weight?: number }
     | { id: string; type: 'image'; src: string }
   >
+  onProgress?: (info: {
+    phase: 'upload' | 'processing' | 'download' | 'done';
+    percent?: number
+  }) => void
 }) {
   const payload = {
     n,
@@ -227,10 +232,24 @@ export async function exportPdf({
   }
 
   try {
-    // ✅ request the PDF
+    onProgress?.({phase: 'upload', percent: 0})
     const res = await axios.post(`${backendLink}/export/pdf`, payload, {
       responseType: 'blob',
+      // upload progress (payload -> server)
+      onUploadProgress: e => {
+        if (!e.total) return onProgress?.({phase: 'upload'})
+        const p = Math.round((e.loaded / e.total) * 100)
+        onProgress?.({phase: 'upload', percent: p})
+      },
+      // download progress (server -> client)
+      onDownloadProgress: e => {
+        if (!e.total) return onProgress?.({phase: 'download'})
+        const p = Math.round((e.loaded / e.total) * 100)
+        onProgress?.({phase: 'download', percent: p})
+      },
     })
+
+    onProgress?.({phase: 'processing'})
 
     // ✅ success: download the PDF
     const blob = new Blob([res.data], {type: 'application/pdf'})
@@ -241,6 +260,7 @@ export async function exportPdf({
     a.click()
     URL.revokeObjectURL(url)
 
+    onProgress?.({phase: 'done', percent: 100})
   } catch (err: any) {
     // ❌ error: try to read JSON text returned by FastAPI
     const blob = err?.response?.data
@@ -250,6 +270,6 @@ export async function exportPdf({
     } else {
       console.error("Export PDF failed:", err)
     }
+    throw err
   }
-
 }

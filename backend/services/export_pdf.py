@@ -111,14 +111,8 @@ def layout_card(
     base_angle = 360 / n_slots
     positions: List[Tuple[float, float, float, float]] = []
 
-    # ring strategy
-    if rconf.ring_strategy == "twp_rings" and n_slots >= 8:
-        inner = round(n_slots * 0.45)
-        outer = n_slots - inner
-        ring_break = inner
-        inner_r = card_radius_mm * 0.55
-        outer_r = card_radius_mm * 0.90
-    elif rconf.ring_strategy == "single":
+    # ring strategy: only 'single' or default ('auto')
+    if rconf.ring_strategy == "single":
         ring_break = n_slots
         inner_r = outer_r = card_radius_mm * 0.75
     else:
@@ -131,7 +125,7 @@ def layout_card(
             inner_r = outer_r = card_radius_mm * 0.75
 
     for i in range(n_slots):
-        angle = base_angle + i
+        angle = base_angle * i
         angle += _rand_between(rnd, -rconf.angular_jitter_deg, rconf.angular_jitter_deg)
         ring_r = inner_r if i < ring_break else outer_r
         rj = _rand_between(rnd, -rconf.radial_jitter_mm, rconf.radial_jitter_mm)
@@ -139,8 +133,14 @@ def layout_card(
         th = _deg2rad(angle)
         x = rr * math.cos(th)
         y = rr * math.sin(th)
-        rot = _rand_between(rnd, -rconf.rotation_deg.min, rconf.rotation_deg.max)
-        sc = _rand_between(rnd, -rconf.scale.min, rconf.scale.max)
+
+        # rotation range [min, max]
+        rot_min = (rconf.rotation_deg.min if rconf.rotation_deg else 0.0)
+        rot_max = (rconf.rotation_deg.max if rconf.rotation_deg else 0.0)
+        rot = _rand_between(rnd, rot_min, rot_max)
+
+        # scale range [min, max]
+        sc = _rand_between(rnd, rconf.scale.min, rconf.scale.max)
         positions.append((x, y, rot, sc))
     return positions
 
@@ -157,7 +157,8 @@ def draw_card(
 ):
     radius_mm = diameter_mm / 2
     p = canvas.beginPath()
-    p.circle(cx, cy, _mm(diameter_mm))
+    # Use radius, not diameter
+    p.circle(cx, cy, _mm(radius_mm))
     canvas.saveState()
     canvas.clipPath(p, stroke=0, fill=0)
 
@@ -166,7 +167,7 @@ def draw_card(
     positions = layout_card(len(card), radius_mm, rnd, rconf)
 
     # draw card
-    for (sys, pos) in zip(card, positions):
+    for sys, pos in zip(card, positions):
         x_mm, y_mm, rot_degrees, scale = pos
         canvas.saveState()
         canvas.translate(cx + _mm(x_mm), cy + _mm(y_mm))
@@ -177,10 +178,10 @@ def draw_card(
             base = _mm(diameter_mm * 0.2) * scale
             canvas.drawImage(img, -base / 2, -base / 2, width=base, height=base, mask='auto')
         else:
-            # text symbol
             txt = str(sys["text"])
-            font = str(sys.get("font") or font_fallback)
-            size_pt = _mm(diameter_mm * 0.16) * scale  # _mm converts mm to points
+            # honor 'font_family' if present
+            font = str(sys.get("font_family") or font_fallback)
+            size_pt = _mm(diameter_mm * 0.16) * scale
             canvas.setFont(font, size_pt)
             canvas.setFillGray(0)
             w = canvas.stringWidth(txt, font, size_pt)
@@ -203,13 +204,28 @@ def paginate_cards(
         per_page: int,
 
 ) -> list[tuple[float, float]]:
-    # 2 x 3 Grid
-    inner_w = page_w * _mm(margin_mm)
-    inner_h = page_h * _mm(margin_mm)
+    # usable area inside margins
+    inner_w = page_w - 2 * _mm(margin_mm)
+    inner_h = page_h - 2 * _mm(margin_mm)
 
-    # layout
-    cols = 3 if per_page >= 3 else per_page
-    rows = math.ceil(per_page / cols)
+    # required size per card (in points)
+    need_w = _mm(diameter_mm)
+    need_h = _mm(diameter_mm)
+
+    # Find a cols x rows layout that fits without overlap
+    best_cols = 1
+    best_rows = per_page
+    for cols in range(1, per_page + 1):
+        rows = math.ceil(per_page / cols)
+        if cols * need_w <= inner_w and rows * need_h <= inner_h:
+            best_cols = cols
+            best_rows = rows
+        else:
+            # keep searching; we want the largest cols that still fit
+            continue
+
+    cols = best_cols
+    rows = best_rows
 
     cell_w = inner_w / cols
     cell_h = inner_h / rows
@@ -237,34 +253,40 @@ def create_pdf(
             _ensure_font(fname, fpath)
     w, h = _page_size_mm(page)
     buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagenumbers=(w, h))
+    # set the page size correctly
+    c = canvas.Canvas(buf, pagesize=(w, h))
 
     centers = paginate_cards(c, w, h, page.margin_mm, card.diameter_mm, card.per_page)
-
+    # draw cards, paginating to fit page size
     idx = 0
     while idx < len(cards):
         for cx, cy in centers:
             if idx >= len(cards):
                 break
+
+            # draw card
             draw_card(
                 canvas=c,
-                cx=cx, cy=cy,
+                cx=cx,
+                cy=cy,
                 card=cards[idx],
                 diameter_mm=card.diameter_mm,
                 stroke_mm=card.stroke_mm,
                 rconf=rconf,
             )
+
             # cut marks optional
             if card.cut_marks:
                 r = _mm(card.diameter_mm / 2)
-                c.setLineWidth(0.5)
+                c.setLineWidth(0.5)  # thin lines
                 for ang in (0, 90, 180, 270):
                     th = _deg2rad(ang)
                     ox = math.cos(th) * (r + _mm(3))
                     oy = math.sin(th) * (r + _mm(3))
                     c.line(cx + ox - 6, cy + oy, cx + ox + 6, cy + oy)
+            # advance to next card after drawing each one
+            idx += 1
         c.showPage()
-        idx += len(centers)
 
     c.save()
     return buf.getvalue()
