@@ -316,13 +316,13 @@ async function onExport() {
   </div>
 
   <!-- Results -->
-  <div v-if="cards.length" class="mt-6">
+  <div v-if="cards.length" class="mt-6 rounded">
     <h3 class="text-xl text-DarkSlateGray font-bold mb-3">Generated Cards</h3>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <div
         v-for="(card, idx) in cards"
         :key="idx"
-        class="border rounded-lg p-3 bg-HunyadiYellow-Dark shadow text-center"
+        class="border rounded-2xl p-3 bg-HunyadiYellow-Dark shadow text-center"
       >
         <h4 class="font-semibold mb-2">Card {{ idx + 1 }}</h4>
         <div class="flex flex-wrap justify-center gap-2">
@@ -380,7 +380,7 @@ async function onExport() {
 
 /* ===== Layout ===== */
 .panel {
-  @apply flex justify-start items-center px-5 rounded-md gap-2.5 bg-DarkSlateGray text-white;
+  @apply flex justify-start items-center px-5 rounded-2xl gap-2.5 bg-DarkSlateGray text-white;
 }
 
 .row {
@@ -435,18 +435,18 @@ async function onExport() {
 
 /* number input */
 .qty {
-  @apply flex flex-col w-20 justify-between items-center gap-x-3 text-2xl text-DarkSlateGray bg-Vanilla py-1.5 px-3 rounded-md;
+  @apply flex flex-col w-20 justify-between items-center gap-x-3 text-2xl text-DarkSlateGray bg-Vanilla py-1.5 px-3 rounded-2xl;
   border: 4px solid var(--color-Auburn);
   box-shadow: 0 1px 0 rgba(255, 255, 255, .4) inset, 0 1px 2px gray;
 }
 
 .status {
-  @apply flex items-center justify-center w-auto px-4 py-1 gap-2.5 text-xl bg-Vanilla rounded-md;
+  @apply flex items-center justify-center w-auto px-4 py-1 gap-2.5 text-xl bg-Vanilla rounded-2xl;
 }
 
 /* submit button */
 .submit {
-  @apply flex items-center justify-center px-12 py-1 gap-2.5 text-2xl  text-DarkSlateGray bg-Vanilla rounded-md;
+  @apply flex items-center justify-center px-12 py-1 gap-2.5 text-2xl  text-DarkSlateGray bg-Vanilla rounded-2xl;
   border: 4px solid var(--color-Auburn);
   box-shadow: 0 1px 0 rgba(255, 255, 255, .5) inset, 0 2px 0 var(--shadow);
   cursor: pointer;
