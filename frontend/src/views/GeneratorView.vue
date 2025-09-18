@@ -1,7 +1,7 @@
-<!-- GeneratorForm.vue -->
 <script setup lang="ts">
 import {buildSymbolDefs, exportPdf, userGenerator} from "@/composables/useGenerator.ts";
 import SymbolsPicker from "@/components/SymbolsPicker.vue"
+import {ref, computed} from "vue"
 
 // add all available PNGs
 const defaultSymbols = Object
@@ -21,19 +21,93 @@ const {
   validateForm, generate,
 } = userGenerator()
 
+// --- Export banner state ---
+const exporting = ref(false)
+const exportPhase = ref<'upload' | 'processing' | 'download' | 'done' | null>(null)
+const exportPercent = ref<number | null>(null)
+const exportError = ref<string | null>(null)
+
+const exportLabel = computed(() => {
+  switch (exportPhase.value) {
+    case 'upload':
+      return 'Uploading request…'
+    case 'processing':
+      return 'Rendering PDF…'
+    case 'download':
+      return 'Downloading PDF…'
+    case 'done':
+      return 'Done'
+    default:
+      return 'Preparing…'
+  }
+})
+
 async function onExport() {
+  exporting.value = true
+  exportPhase.value = null
+  exportPercent.value = null
+  exportError.value = null
+
   const defs = buildSymbolDefs(notation.value, totalSymbols.value!, selectedSymbols.value)
-  await exportPdf({
-    n: n.value!,
-    symbolsPerCard: symbolsPerCard.value!,
-    numCards: totalSymbols.value!,
-    cards: cards.value,
-    symbolDefs: defs,
-  })
+  try {
+    await exportPdf({
+      n: n.value!,
+      symbolsPerCard: symbolsPerCard.value!,
+      numCards: totalSymbols.value!,
+      cards: cards.value,
+      symbolDefs: defs,
+      onProgress: ({phase, percent}) => {
+        exportPhase.value = phase
+        exportPercent.value = percent ?? null
+      }
+    })
+  } catch (e: any) {
+    exportError.value = e?.message || 'Export failed'
+  } finally {
+    // Keep the banner briefly on "done" for UX, then hide
+    if (exportPhase.value === 'done' && !exportError.value) {
+      setTimeout(() => {
+        exporting.value = false
+      }, 600)
+    } else {
+      exporting.value = false
+    }
+  }
 }
 </script>
 
 <template>
+  <!-- Export banner -->
+  <transition name="fade">
+    <div
+      v-if="exporting"
+      class="fixed top-0 left-0 right-0 z-50 flex items-center gap-4 px-4 py-2 bg-HunyadiYellow-Dark text-white shadow-md"
+      role="status"
+      aria-live="polite"
+    >
+      <div class="flex-1">
+        <div class="font-semibold">{{ exportLabel }}</div>
+        <div class="h-2 mt-2 w-full bg-white/20 rounded overflow-hidden">
+          <div
+            class="h-full bg-Vanilla transition-all"
+            :style="exportPercent != null ? { width: exportPercent + '%' } : { width: '30%', animation: 'indet 1.2s linear infinite' }"
+          />
+        </div>
+      </div>
+      <div v-if="exportPercent != null" class="min-w-[3rem] text-right tabular-nums">
+        {{ exportPercent }}%
+      </div>
+      <button
+        type="button"
+        class="ml-2 px-3 py-1 rounded bg-white/10 hover:bg-white/20"
+        @click="exporting = false"
+        aria-label="Hide export status"
+      >
+        ✕
+      </button>
+    </div>
+  </transition>
+
   <h1 class="title">
     The Generator
   </h1>
@@ -187,8 +261,6 @@ async function onExport() {
     >
       Export to PDF
     </button>
-
-    <!-- Your cards preview -->
   </div>
 
   <!-- Results -->
@@ -223,6 +295,31 @@ async function onExport() {
 
 <style scoped>
 @reference "@/assets/main.css";
+
+/* Simple fade for banner */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity .15s ease
+}
+
+.fade-enter-from, .fade-leave-to {
+  opacity: 0
+}
+
+/* Indeterminate bar animation */
+@keyframes indet {
+  0% {
+    margin-left: 0%;
+    width: 15%
+  }
+  50% {
+    margin-left: 60%;
+    width: 30%
+  }
+  100% {
+    margin-left: 100%;
+    width: 15%
+  }
+}
 
 .panel-title {
   @apply !text-xl;
