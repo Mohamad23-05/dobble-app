@@ -41,6 +41,9 @@ const exportLabel = computed(() => {
       return 'Preparing…'
   }
 })
+// Allowed n values (kept in sync with backend list)
+const ALLOWED_N = [2, 3, 4, 5, 7]
+const allowedNText = computed(() => ALLOWED_N.join(', '))
 
 async function onExport() {
   exporting.value = true
@@ -180,19 +183,26 @@ async function onExport() {
               </svg>
               <span>S/C</span>
             </button>
+            <span>and how many?</span>
+
+            <input
+              class="qty"
+              type="number"
+              min="0"
+              required
+              :placeholder="howManyPlaceholder"
+              v-model.number="howMany"
+              aria-label="how many"
+            />
+            <div class="panel" v-if="mode === 'n'" aria-live="polite">
+              <div class="!text-sm mt-1">
+
+                Allowed order n of a finite plane: {{ allowedNText }}
+              </div>
+            </div>
           </div>
 
-          <span>and how many?</span>
 
-          <input
-            class="qty"
-            type="number"
-            min="0"
-            required
-            :placeholder="howManyPlaceholder"
-            v-model.number="howMany"
-            aria-label="how many"
-          />
         </div>
       </div>
 
@@ -255,6 +265,13 @@ async function onExport() {
               </svg>
               <span>Symbols</span>
             </button>
+            <div class="panel pt-1">
+              <p v-if="notation === 'l'" class="!text-sm mt-1">
+                Letters available: {{ 26 }}. Max feasible n: {{
+                  [2, 3, 4, 5, 7, 8, 9, 13].filter(n => n * n + n + 1 <= 26).join(', ') || 'none'
+                }}.
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -262,14 +279,6 @@ async function onExport() {
       <div class="panel pt-4">
         <button class="submit" type="submit">submit!</button>
       </div>
-      <div class="panel pt-1">
-        <p v-if="notation === 'l'" class="!text-sm mt-1">
-          Letters available: {{ 26 }}. Max feasible n: {{
-            [2, 3, 4, 5, 7, 8, 9, 13].filter(n => n * n + n + 1 <= 26).join(', ') || 'none'
-          }}.
-        </p>
-      </div>
-
       <div class="flex justify-start px-5 pt-2">
         <div v-if="loading" class="status text-Auburn">Checking…</div>
         <div v-if="error" class="status text-red-700">

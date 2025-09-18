@@ -1,7 +1,7 @@
 # services/dobble_logic.py
 from typing import Optional, Dict
 
-VALID_ORDERS = [2, 3, 4, 5, 7, 8, 9, 13]
+VALID_ORDERS = [2, 3, 4, 5, 7]
 
 
 def get_params(

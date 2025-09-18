@@ -16,7 +16,7 @@ export function userGenerator() {
   const howMany = ref<number | null>(null)
 
   const howManyPlaceholder = computed(() =>
-    mode.value === 'n' ? 'n' : mode.value === 'k' ? 'k' : 's/c'
+    mode.value === 'n' ? 'N' : mode.value === 'k' ? 'C' : 'S/C'
   )
   // reset input so placeholder becomes visible
   watch(mode, () => {
