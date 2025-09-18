@@ -195,10 +195,10 @@ async function onExport() {
               aria-label="how many"
             />
             <div class="panel" v-if="mode === 'n'" aria-live="polite">
-              <div class="!text-sm mt-1">
+              <p class="!text-sm mt-1">
 
                 Allowed order n of a finite plane: {{ allowedNText }}
-              </div>
+              </p>
             </div>
           </div>
 
@@ -265,13 +265,13 @@ async function onExport() {
               </svg>
               <span>Symbols</span>
             </button>
-            <div class="panel pt-1">
-              <p v-if="notation === 'l'" class="!text-sm mt-1">
-                Letters available: {{ 26 }}. Max feasible n: {{
-                  [2, 3, 4, 5, 7, 8, 9, 13].filter(n => n * n + n + 1 <= 26).join(', ') || 'none'
-                }}.
-              </p>
-            </div>
+          </div>
+          <div class="panel pt-1">
+            <p v-if="notation === 'l'" class="!text-sm mt-1">
+              Letters available: {{ 26 }}. Max feasible n: {{
+                [2, 3, 4, 5, 7, 8, 9, 13].filter(n => n * n + n + 1 <= 26).join(', ') || 'none'
+              }}.
+            </p>
           </div>
         </div>
       </div>
@@ -319,14 +319,10 @@ async function onExport() {
     </span>
   </div>
 
-  <div v-if="cards.length" class="mt-6">
-    <h3 class="text-xl font-bold mb-3">Generated Cards</h3>
-    <button class="submit mt-4" @click="onExport">Export to PDF</button>
-  </div>
-
   <!-- Results -->
-  <div v-if="cards.length" class="mt-6 rounded">
+  <div v-if="cards.length" class="mt-6 gap-2.5 rounded">
     <h3 class="text-xl text-DarkSlateGray font-bold mb-3">Generated Cards</h3>
+    <button class="submit mb-4" @click="onExport">Export to PDF</button>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <div
         v-for="(card, idx) in cards"
@@ -349,6 +345,7 @@ async function onExport() {
       </div>
     </div>
   </div>
+
 </template>
 
 <style scoped>
@@ -396,18 +393,14 @@ async function onExport() {
   @apply grid grid-cols-[auto_auto_1fr] justify-center items-center gap-x-6 gap-y-4 text-xl;
 }
 
-@media (max-width: 780px) {
-  .row {
-    grid-template-columns: 1fr;
-    justify-items: center;
-  }
-}
-
-/* ===== Icon radios (new) ===== */
+/* ===== Icon radios ===== */
 .icon-radios {
   display: inline-flex;
   align-items: center;
   gap: 14px;
+  /* allow wrapping to prevent overflow on narrow screens */
+  flex-wrap: wrap;
+  width: 100%;
 }
 
 .icon-radio {
@@ -437,7 +430,7 @@ async function onExport() {
 }
 
 .icon-radio.is-selected {
-  background: #f3d08d; /* highlighted */
+  background: #f3d08d;
   box-shadow: 0 1px 0 rgba(255, 255, 255, .5) inset, 0 2px 0 var(--shadow);
   outline: 2px solid #e3a00833;
 }
@@ -455,7 +448,7 @@ async function onExport() {
 
 /* submit button */
 .submit {
-  @apply flex items-center justify-center px-12 py-1 gap-2.5 text-2xl  text-DarkSlateGray bg-Vanilla rounded-2xl;
+  @apply flex items-center justify-center px-12 py-1 gap-2.5 text-2xl text-DarkSlateGray bg-Vanilla rounded-2xl;
   border: 4px solid var(--color-Auburn);
   box-shadow: 0 1px 0 rgba(255, 255, 255, .5) inset, 0 2px 0 var(--shadow);
   cursor: pointer;
@@ -467,5 +460,87 @@ async function onExport() {
 
 .submit:active {
   transform: translateY(0);
+}
+
+/* ===== Responsive (use concrete values equivalent to your vars) ===== */
+/* --breakpoint-lg: 976px; --breakpoint-md: 768px; --breakpoint-sm: 360px; */
+
+/* <= 976px: tighten gaps/padding and switch rows to single column earlier */
+@media (max-width: 976px) {
+  .row {
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+    column-gap: 1rem;
+  }
+
+  .panel {
+    padding-inline: 1rem;
+  }
+
+  .icon-radios {
+    justify-content: center;
+  }
+
+  .icon-radio {
+    /* three per row when space allows */
+    flex: 1 1 calc(33.333% - 12px);
+    min-width: 150px;
+    justify-content: center;
+  }
+
+  .qty {
+    width: 100%;
+    max-width: 360px;
+  }
+
+  .submit {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .status {
+    width: 100%;
+  }
+}
+
+/* <= 768px: two-per-row radios and smaller text to avoid overflow */
+@media (max-width: 768px) {
+  .icon-radio {
+    flex: 1 1 calc(50% - 12px);
+    min-width: 140px;
+  }
+
+  .panel-title {
+    font-size: 1.125rem; /* ~text-lg */
+  }
+}
+
+/* <= 360px: stack everything vertically, full-width controls */
+@media (max-width: 360px) {
+  .title {
+    font-size: 1.375rem; /* ~text-xl */
+    line-height: 1.2;
+  }
+
+  .icon-radio {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .qty {
+    max-width: 100%;
+    font-size: 1.125rem;
+  }
+
+  .submit {
+    max-width: 100%;
+    padding-inline: 1rem;
+    font-size: 1.125rem;
+  }
+
+  .panel {
+    gap: 0.5rem;
+    padding-inline: 0.75rem;
+  }
 }
 </style>
