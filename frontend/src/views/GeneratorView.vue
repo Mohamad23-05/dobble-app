@@ -116,34 +116,71 @@ async function onExport() {
     <form class="mb-2" @submit.prevent="validateForm" aria-labelledby="g-title">
       <div class="panel pt-2">
         <h2 class="panel-title" id="g-title">
-          Do you want to enter the order of the finite plane (n), symbol/card (s/c) or number of
-          cards
-          (k)?
+          Do you want to enter the order of the finite plane (N), number of
+          cards (C) or symbol/card (S/C)?
         </h2>
+      </div>
 
+      <div class="panel pt-2">
         <!-- Row 1 -->
         <div class="row">
-          <fieldset class="radios" role="radiogroup" aria-label="input mode">
-            <legend class="sr-only">Input mode</legend>
+          <!-- Replaced radios: Input mode -->
+          <div class="icon-radios" role="radiogroup" aria-label="input mode">
+            <button
+              type="button"
+              class="icon-radio"
+              :class="mode === 'n' ? 'is-selected' : ''"
+              role="radio"
+              :aria-checked="mode === 'n'"
+              @click="mode = 'n'"
+              title="Enter order n"
+            >
+              <!-- Grid/N icon -->
+              <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
+                <rect x="3" y="3" width="7" height="7" rx="1.2"/>
+                <rect x="14" y="3" width="7" height="7" rx="1.2"/>
+                <rect x="3" y="14" width="7" height="7" rx="1.2"/>
+                <rect x="14" y="14" width="7" height="7" rx="1.2"/>
+              </svg>
+              <span>N</span>
+            </button>
 
-            <label class="radio">
-              <input class="sr-only peer" type="radio" name="mode" value="n" v-model="mode"/>
-              <span class="dot" aria-hidden="true"></span>
-              <span>n</span>
-            </label>
+            <button
+              type="button"
+              class="icon-radio"
+              :class="mode === 'k' ? 'is-selected' : ''"
+              role="radio"
+              :aria-checked="mode === 'k'"
+              @click="mode = 'k'"
+              title="Enter number of cards k"
+            >
+              <!-- Stack/Cards icon -->
+              <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
+                <path d="M7 6h10a2 2 0 0 1 2 2v7H9a2 2 0 0 1-2-2V6z"/>
+                <path d="M5 9h10a2 2 0 0 1 2 2v7H7a2 2 0 0 1-2-2V9z" opacity=".5"/>
+              </svg>
+              <span>C</span>
+            </button>
 
-            <label class="radio">
-              <input class="sr-only peer" type="radio" name="mode" value="k" v-model="mode"/>
-              <span class="dot" aria-hidden="true"></span>
-              <span>k</span>
-            </label>
-
-            <label class="radio">
-              <input class="sr-only peer" type="radio" name="mode" value="sc" v-model="mode"/>
-              <span class="dot" aria-hidden="true"></span>
-              <span>s/c</span>
-            </label>
-          </fieldset>
+            <button
+              type="button"
+              class="icon-radio"
+              :class="mode === 'sc' ? 'is-selected' : ''"
+              role="radio"
+              :aria-checked="mode === 'sc'"
+              @click="mode = 'sc'"
+              title="Enter symbols per card s/c"
+            >
+              <!-- S/C icon -->
+              <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
+                <circle cx="8" cy="8" r="3"/>
+                <circle cx="16" cy="16" r="3"/>
+                <path d="M10.5 10.5l3 3" stroke="currentColor" stroke-width="2" fill="none"
+                      stroke-linecap="round"/>
+              </svg>
+              <span>S/C</span>
+            </button>
+          </div>
 
           <span>and how many?</span>
 
@@ -161,44 +198,71 @@ async function onExport() {
 
       <!-- Row 2 -->
       <div class="panel pt-2">
-
         <h2 class="panel-title mt-3">
-          Do you want to use numbers (n), letters (l) or symbols (s) for your cards?
+          Do you want to use numbers, letters or symbols for your cards?
         </h2>
+      </div>
 
+      <div class="panel pt-2">
         <div class="row">
-          <fieldset class="radios" role="radiogroup" aria-label="notation">
-            <legend class="sr-only">Notation</legend>
+          <!-- Replaced radios: Notation -->
+          <div class="icon-radios" role="radiogroup" aria-label="notation">
+            <button
+              type="button"
+              class="icon-radio"
+              :class="notation === 'n' ? 'is-selected' : ''"
+              role="radio"
+              :aria-checked="notation === 'n'"
+              @click="notation = 'n'"
+              title="Numbers"
+            >
+              <!-- 123 icon -->
+              <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
+                <path d="M5 17h2V7H5l-2 2v2l2-2v8zM11 17h6v-2h-3.6l3.5-4.2V9h-6v2h3.2L11 15.2V17z"/>
+              </svg>
+              <span>Numbers</span>
+            </button>
 
-            <label class="radio">
-              <input class="sr-only peer" type="radio" name="notation" value="n"
-                     v-model="notation"/>
-              <span class="dot" aria-hidden="true"></span>
-              <span>n</span>
-            </label>
+            <button
+              type="button"
+              class="icon-radio"
+              :class="notation === 'l' ? 'is-selected' : ''"
+              role="radio"
+              :aria-checked="notation === 'l'"
+              @click="notation = 'l'"
+              title="Letters"
+            >
+              <!-- Letter A icon -->
+              <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
+                <path d="M12 4l7 16h-2.6l-1.7-4H9.3l-1.7 4H5L12 4zm-1.6 9h3.2L12 7.9 10.4 13z"/>
+              </svg>
+              <span>Letters</span>
+            </button>
 
-            <label class="radio">
-              <input class="sr-only peer" type="radio" name="notation" value="l"
-                     v-model="notation"/>
-              <span class="dot" aria-hidden="true"></span>
-              <span>l</span>
-            </label>
-
-            <label class="radio">
-              <input class="sr-only peer" type="radio" name="notation" value="s"
-                     v-model="notation"/>
-              <span class="dot" aria-hidden="true"></span>
-              <span>s</span>
-            </label>
-          </fieldset>
+            <button
+              type="button"
+              class="icon-radio"
+              :class="notation === 's' ? 'is-selected' : ''"
+              role="radio"
+              :aria-checked="notation === 's'"
+              @click="notation = 's'"
+              title="Symbols"
+            >
+              <!-- Sparkle icon -->
+              <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
+                <path
+                  d="M12 3l2 4 4 2-4 2-2 4-2-4-4-2 4-2 2-4zM18 14l1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2z"/>
+              </svg>
+              <span>Symbols</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      <div class="panel py-4">
+      <div class="panel pt-4">
         <button class="submit" type="submit">submit!</button>
       </div>
       <div class="panel pt-1">
-        <!-- status -->
         <p v-if="notation === 'l'" class="!text-sm mt-1">
           Letters available: {{ 26 }}. Max feasible n: {{
             [2, 3, 4, 5, 7, 8, 9, 13].filter(n => n * n + n + 1 <= 26).join(', ') || 'none'
@@ -208,19 +272,14 @@ async function onExport() {
 
       <div class="flex justify-start px-5 pt-2">
         <div v-if="loading" class="status text-Auburn">Checking…</div>
-        <div
-          v-if="error"
-          class="status text-red-700"
-        >
+        <div v-if="error" class="status text-red-700">
           {{ error }}
         </div>
-        <div v-if="valid"
-             class="status text-DarkSlateGray">
+        <div v-if="valid" class="status text-DarkSlateGray">
           the order n {{ n }} of the finite plane with symbols {{ symbolsPerCard }} each card with
           {{ totalSymbols }} cards totally and symbols: {{ totalSymbols }} is a valid cards-set.
         </div>
       </div>
-
     </form>
   </div>
 
@@ -246,27 +305,19 @@ async function onExport() {
     >
       {{ generateCtaText }}
     </button>
-
-    <!-- Optional helper text showing why it’s disabled -->
     <span v-if="!canGenerate && generateDisabledReason" class="text-sm opacity-80">
-    {{ generateDisabledReason }}
-  </span>
+      {{ generateDisabledReason }}
+    </span>
   </div>
+
   <div v-if="cards.length" class="mt-6">
     <h3 class="text-xl font-bold mb-3">Generated Cards</h3>
-
-    <button
-      class="submit mt-4"
-      @click="onExport"
-    >
-      Export to PDF
-    </button>
+    <button class="submit mt-4" @click="onExport">Export to PDF</button>
   </div>
 
   <!-- Results -->
   <div v-if="cards.length" class="mt-6">
     <h3 class="text-xl text-DarkSlateGray font-bold mb-3">Generated Cards</h3>
-
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <div
         v-for="(card, idx) in cards"
@@ -275,23 +326,21 @@ async function onExport() {
       >
         <h4 class="font-semibold mb-2">Card {{ idx + 1 }}</h4>
         <div class="flex flex-wrap justify-center gap-2">
-        <span
-          v-for="symbol in card"
-          :key="symbol"
-          class="px-2 py-1 rounded bg-gray-100 border"
-        >
-          <template v-if="symbol.startsWith('data:') || symbol.endsWith('.png')">
-            <img :src="symbol" alt="" class="h-8 w-8 object-contain"/>
-          </template>
-          <template v-else>{{ symbol }}</template>
-        </span>
+          <span
+            v-for="symbol in card"
+            :key="symbol"
+            class="px-2 py-1 rounded bg-gray-100 border"
+          >
+            <template v-if="symbol.startsWith('data:') || symbol.endsWith('.png')">
+              <img :src="symbol" alt="" class="h-8 w-8 object-contain"/>
+            </template>
+            <template v-else>{{ symbol }}</template>
+          </span>
         </div>
       </div>
     </div>
   </div>
-
 </template>
-
 
 <style scoped>
 @reference "@/assets/main.css";
@@ -338,7 +387,6 @@ async function onExport() {
   @apply grid grid-cols-[auto_auto_1fr] justify-center items-center gap-x-6 gap-y-4 text-xl;
 }
 
-
 @media (max-width: 780px) {
   .row {
     grid-template-columns: 1fr;
@@ -346,45 +394,44 @@ async function onExport() {
   }
 }
 
-/* ===== Radios ===== */
-.radios {
+/* ===== Icon radios (new) ===== */
+.icon-radios {
   display: inline-flex;
   align-items: center;
-  gap: 22px;
+  gap: 14px;
 }
 
-.radio {
-  @apply inline-flex items-center cursor-pointer gap-2 select-none;
+.icon-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: #0f172a; /* slate-900 */
+  background: #faf6e5; /* Vanilla-ish */
+  border: 2px solid var(--color-Auburn);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .4) inset, 0 1px 2px rgba(0, 0, 0, .25);
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease, background-color .12s ease;
 }
 
-.sr-only {
-  @apply !absolute w-0.5 h-0.5 p-0 m-[-1px] overflow-hidden whitespace-nowrap border-0;
+.icon-radio:hover {
+  transform: translateY(-1px);
 }
 
-/* coin circle */
-.dot {
-  @apply w-6 h-6 rounded-full bg-Vanilla border-2 border-solid;
-  box-shadow: inset 0 0 0 2px gray;
-  transition: transform .12s ease, box-shadow .12s ease;
+.icon-radio:active {
+  transform: translateY(0);
 }
 
-/* checked = golden coin fill */
-.peer:checked + .dot {
-  @apply bg-Auburn;
-  border: 3px solid gray;
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .25);
-  transition: transform .12s ease, box-shadow .12s ease;
+.icon-radio svg {
+  fill: currentColor;
 }
 
-.radio:hover .dot {
-  transform: scale(1.05);
+.icon-radio.is-selected {
+  background: #f3d08d; /* highlighted */
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .5) inset, 0 2px 0 var(--shadow);
+  outline: 2px solid #e3a00833;
 }
-
-.peer:focus-visible + .dot {
-  outline: 2px solid #60a5fa;
-  outline-offset: 2px;
-}
-
 
 /* number input */
 .qty {
@@ -393,21 +440,8 @@ async function onExport() {
   box-shadow: 0 1px 0 rgba(255, 255, 255, .4) inset, 0 1px 2px gray;
 }
 
-/* custom symbols checkbox */
-.own-symbols {
-  @apply inline-flex items-center gap-2.5 whitespace-nowrap;
-}
-
-.own-symbols input {
-  @apply w-6 h-6 accent-Auburn bg-Vanilla;
-  box-shadow: inset 0 0 0 2px var(--color-Auburn);
-  border: 3px solid var(--color-Auburn);
-}
-
-
 .status {
-  @apply flex items-center justify-center w-auto px-4 py-1 gap-2.5
-  text-xl bg-Vanilla rounded-md;
+  @apply flex items-center justify-center w-auto px-4 py-1 gap-2.5 text-xl bg-Vanilla rounded-md;
 }
 
 /* submit button */
