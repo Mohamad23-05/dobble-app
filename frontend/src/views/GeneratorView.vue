@@ -21,6 +21,45 @@ const {
   validateForm, generate,
 } = userGenerator()
 
+const hasValidation = computed(() => !loading.value && (valid.value || !!error.value))
+
+const validationTitle = computed(() =>
+  valid.value ? 'Form is valid' : !!error.value ? 'Form is not valid' : ''
+)
+
+// Allowed n values (kept in sync with backend list)
+const ALLOWED_N = [2, 3, 4, 5, 7]
+const allowedNText = computed(() => ALLOWED_N.join(', '))
+const allowedKText = computed(() => ALLOWED_N.map(x => x * x + x + 1).join(', '))
+const allowedSCText = computed(() => ALLOWED_N.map(x => x + 1).join(', '))
+
+// Friendlier message beside the SVG
+const validationMessage = computed(() => {
+  if (valid.value) {
+    // Positive, concise, and actionable
+    const k = totalSymbols.value
+    return `Looks good: n=${n.value}. Each card has ${symbolsPerCard.value} symbols, total cards ${k}. ${generateCtaText.value}.`
+  }
+
+  // Invalid: provide specific guidance by mode, plus server feedback if any.
+  const reason = error.value ? String(error.value) : 'Invalid input.'
+  if (mode.value === 'n') {
+    const hint = `Allowed n values: ${allowedNText.value}.`
+    // If user typed a number, show a direct n-specific message.
+    return howMany.value != null
+      ? `n=${howMany.value} is not supported. ${hint}`
+      : `${reason} ${hint}`
+  }
+  if (mode.value === 'k') {
+    const hint = `Enter a cards count k in: ${allowedKText.value}.`
+    return `${reason} ${hint}`
+  }
+  // mode === 'sc'
+  const hint = `Enter symbols per card (s/c) in: ${allowedSCText.value}.`
+  return `${reason} ${hint}`
+})
+
+
 // --- Export banner state ---
 const exporting = ref(false)
 const exportPhase = ref<'upload' | 'processing' | 'download' | 'done' | null>(null)
@@ -41,9 +80,7 @@ const exportLabel = computed(() => {
       return 'Preparing…'
   }
 })
-// Allowed n values (kept in sync with backend list)
-const ALLOWED_N = [2, 3, 4, 5, 7]
-const allowedNText = computed(() => ALLOWED_N.join(', '))
+
 
 async function onExport() {
   exporting.value = true
@@ -195,7 +232,7 @@ async function onExport() {
               aria-label="how many"
             />
             <div class="panel" v-if="mode === 'n'" aria-live="polite">
-              <p class="!text-sm mt-1">
+              <p class="!text-sm">
 
                 Allowed order n of a finite plane: {{ allowedNText }}
               </p>
@@ -267,7 +304,7 @@ async function onExport() {
             </button>
           </div>
           <div class="panel pt-1">
-            <p v-if="notation === 'l'" class="!text-sm mt-1">
+            <p v-if="notation === 'l'" class="!text-sm">
               Letters available: {{ 26 }}. Max feasible n: {{
                 [2, 3, 4, 5, 7, 8, 9, 13].filter(n => n * n + n + 1 <= 26).join(', ') || 'none'
               }}.
@@ -278,16 +315,6 @@ async function onExport() {
 
       <div class="panel pt-4">
         <button class="submit" type="submit">submit!</button>
-      </div>
-      <div class="flex justify-start px-5 pt-2">
-        <div v-if="loading" class="status text-Auburn">Checking…</div>
-        <div v-if="error" class="status text-red-700">
-          {{ error }}
-        </div>
-        <div v-if="valid" class="status text-DarkSlateGray">
-          the order n {{ n }} of the finite plane with symbols {{ symbolsPerCard }} each card with
-          {{ totalSymbols }} cards totally and symbols: {{ totalSymbols }} is a valid cards-set.
-        </div>
       </div>
     </form>
   </div>
@@ -314,9 +341,42 @@ async function onExport() {
     >
       {{ generateCtaText }}
     </button>
+    <!-- SVG validity indicator with explanation -->
+    <div v-if="loading" class="status text-Auburn">Checking…</div>
+    <div
+      v-if="hasValidation"
+      class="inline-flex items-center gap-2 rounded-[12px] px-2 py-1"
+      aria-live="polite"
+      :title="validationTitle"
+    >
+      <!-- Valid -->
+      <svg v-if="valid" viewBox="0 0 24 24" width="28" height="28" class="text-green-700" role="img"
+           aria-label="Valid">
+        <circle cx="12" cy="12" r="10" class="fill-green-100 stroke-green-600" stroke-width="1.5"/>
+        <path d="M7 12.5l3 3 7-7" class="stroke-green-700" fill="none" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <!-- Invalid -->
+      <svg v-else viewBox="0 0 24 24" width="28" height="28" class="text-red-700" role="img"
+           aria-label="Invalid">
+        <circle cx="12" cy="12" r="10" class="fill-red-100 stroke-red-600" stroke-width="1.5"/>
+        <path d="M8.5 8.5l7 7M15.5 8.5l-7 7" class="stroke-red-700" fill="none" stroke-width="2"
+              stroke-linecap="round"/>
+      </svg>
+
+      <span
+        class="text-sm"
+        :class="valid ? 'text-green-800' : 'text-red-800'"
+      >
+        {{ validationMessage }}
+      </span>
+    </div>
+
+    <!-- Optional helper text showing why it’s disabled -->
     <span v-if="!canGenerate && generateDisabledReason" class="text-sm opacity-80">
       {{ generateDisabledReason }}
     </span>
+
   </div>
 
   <!-- Results -->
@@ -449,13 +509,15 @@ async function onExport() {
 /* submit button */
 .submit {
   @apply flex items-center justify-center px-12 py-1 gap-2.5 text-2xl text-DarkSlateGray bg-Vanilla rounded-2xl;
-  border: 4px solid var(--color-Auburn);
+  border: 2px solid var(--color-Auburn);
   box-shadow: 0 1px 0 rgba(255, 255, 255, .5) inset, 0 2px 0 var(--shadow);
   cursor: pointer;
 }
 
 .submit:hover {
   transform: translateY(-1px);
+  background: #f3d08d;
+
 }
 
 .submit:active {
