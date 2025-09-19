@@ -196,7 +196,7 @@ export async function exportPdf({
                                   numCards,
                                   cards,
                                   symbolDefs,
-                                  onProgress, // optional progress callback
+                                  onProgress,
                                 }: {
   n: number
   symbolsPerCard: number
@@ -211,18 +211,31 @@ export async function exportPdf({
     percent?: number
   }) => void
 }) {
+  // Convert any non-data image src -> data URL, but keep ids as-is
+  const {urlToDataUrl} = await import('@/composables/dataUrl.ts')
+  const symbolsForApi = await Promise.all(
+    symbolDefs.map(async s => {
+      if (s.type !== 'image') return s
+      if (s.src.startsWith('data:')) return s
+      // Resolve to absolute URL (helps when src starts with /src/... in dev)
+      const absolute = new URL(s.src, window.location.origin).toString()
+      const dataSrc = await urlToDataUrl(absolute)
+      return {...s, src: dataSrc}
+    })
+  )
+
   const payload = {
     n,
     symbols_per_card: symbolsPerCard,
     num_cards: numCards,
     cards,
-    symbols: symbolDefs,
+    symbols: symbolsForApi,
     page: {size: 'A4', orientation: 'portrait', margin_mm: 10},
     card: {diameter_mm: 80, stroke_mm: 0.4, per_page: 6, cut_marks: true, bleed_mm: 0},
     randomization: {
       seed: null,
-      rotation_mode: 'steps90',                 // <- use your new modes: 'any' | 'bounded' | 'steps90' | 'steps'
-      rotation_deg: {min: 0, max: 360},       // used by 'any'/'bounded'
+      rotation_mode: 'steps90',
+      rotation_deg: {min: 0, max: 360},
       scale: {min: 0.8, max: 1.1},
       angular_jitter_deg: 6,
       radial_jitter_mm: 1.5,
@@ -235,23 +248,17 @@ export async function exportPdf({
     onProgress?.({phase: 'upload', percent: 0})
     const res = await axios.post(`${backendLink}/export/pdf`, payload, {
       responseType: 'blob',
-      // upload progress (payload -> server)
       onUploadProgress: e => {
         if (!e.total) return onProgress?.({phase: 'upload'})
-        const p = Math.round((e.loaded / e.total) * 100)
-        onProgress?.({phase: 'upload', percent: p})
+        onProgress?.({phase: 'upload', percent: Math.round((e.loaded / e.total) * 100)})
       },
-      // download progress (server -> client)
       onDownloadProgress: e => {
         if (!e.total) return onProgress?.({phase: 'download'})
-        const p = Math.round((e.loaded / e.total) * 100)
-        onProgress?.({phase: 'download', percent: p})
+        onProgress?.({phase: 'download', percent: Math.round((e.loaded / e.total) * 100)})
       },
     })
-
     onProgress?.({phase: 'processing'})
 
-    // ✅ success: download the PDF
     const blob = new Blob([res.data], {type: 'application/pdf'})
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -262,7 +269,6 @@ export async function exportPdf({
 
     onProgress?.({phase: 'done', percent: 100})
   } catch (err: any) {
-    // ❌ error: try to read JSON text returned by FastAPI
     const blob = err?.response?.data
     if (blob instanceof Blob) {
       const text = await blob.text()
