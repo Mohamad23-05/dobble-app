@@ -367,7 +367,7 @@ async function onExport() {
 
   </div>
   <!-- show picker for symbols mode -->
-  <div v-if="valid && notation === 's'" class="panel mt-4">
+  <div v-if="valid && notation === 's' && !cards.length" class="panel mt-4">
     <SymbolsPicker
       v-model="selectedSymbols"
       :totalSymbols="totalSymbols || 0"
