@@ -329,23 +329,38 @@ async function onExport() {
     >
       {{ generateCtaText }}
     </button>
-    <!-- SVG validity indicator with explanation -->
-    <div v-if="loading" class="status text-Auburn">Checking…</div>
+
+    <!-- Optional helper text showing why it’s disabled -->
+    <span v-if="!canGenerate && generateDisabledReason" class="text-sm opacity-80">
+      {{ generateDisabledReason }}
+    </span>
+  </div>
+
+  <!-- Validation row (separate, responsive) -->
+  <div class="mt-2 w-full">
+    <!-- Loading -->
+    <div v-if="loading"
+         class="status text-Auburn items-start gap-2 rounded-[12px] text-sm px-3 py-2 bg-Vanilla/70 border border-[color:var(--color-Auburn)] md:max-w-3xl">
+      Checking…
+    </div>
+
+    <!-- Result -->
     <div
-      v-if="hasValidation"
-      class="inline-flex items-center gap-2 rounded-[12px] px-2 py-1"
+      v-else-if="hasValidation"
+      class="w-full inline-flex items-start gap-2 rounded-[12px] px-3 py-2 bg-Vanilla/70 border border-[color:var(--color-Auburn)] md:max-w-3xl"
+      role="status"
       aria-live="polite"
       :title="validationTitle"
     >
       <!-- Valid -->
-      <svg v-if="valid" viewBox="0 0 24 24" width="28" height="28" class="text-green-700" role="img"
-           aria-label="Valid">
+      <svg v-if="valid" viewBox="0 0 24 24" width="24" height="24" class="min-w-6 text-green-700"
+           role="img" aria-label="Valid">
         <circle cx="12" cy="12" r="10" class="fill-green-100 stroke-green-600" stroke-width="1.5"/>
         <path d="M7 12.5l3 3 7-7" class="stroke-green-700" fill="none" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
       <!-- Invalid -->
-      <svg v-else viewBox="0 0 24 24" width="28" height="28" class="text-red-700" role="img"
+      <svg v-else viewBox="0 0 24 24" width="24" height="24" class="min-w-6 text-red-700" role="img"
            aria-label="Invalid">
         <circle cx="12" cy="12" r="10" class="fill-red-100 stroke-red-600" stroke-width="1.5"/>
         <path d="M8.5 8.5l7 7M15.5 8.5l-7 7" class="stroke-red-700" fill="none" stroke-width="2"
@@ -353,19 +368,14 @@ async function onExport() {
       </svg>
 
       <span
-        class="text-sm"
+        class="text-sm leading-6"
         :class="valid ? 'text-green-800' : 'text-red-800'"
       >
         {{ validationMessage }}
       </span>
     </div>
-
-    <!-- Optional helper text showing why it’s disabled -->
-    <span v-if="!canGenerate && generateDisabledReason" class="text-sm opacity-80">
-      {{ generateDisabledReason }}
-    </span>
-
   </div>
+
   <!-- show picker for symbols mode -->
   <div v-if="valid && notation === 's' && !cards.length" class="panel mt-4">
     <SymbolsPicker
@@ -496,7 +506,7 @@ async function onExport() {
 /* number input */
 .qty {
   @apply flex flex-col w-20 justify-between items-center gap-x-3 text-2xl text-DarkSlateGray bg-Vanilla py-1.5 px-3 rounded-2xl;
-  border: 4px solid var(--color-Auburn);
+  border: 2px solid var(--color-Auburn);
   box-shadow: 0 1px 0 rgba(255, 255, 255, .4) inset, 0 1px 2px gray;
 }
 
