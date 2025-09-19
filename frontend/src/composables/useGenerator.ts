@@ -18,9 +18,28 @@ export function userGenerator() {
   const howManyPlaceholder = computed(() =>
     mode.value === 'n' ? 'N' : mode.value === 'k' ? 'C' : 'S/C'
   )
-  // reset input so placeholder becomes visible
+
+  // helper: clear current validation/result state (used when inputs change)
+  function resetValidationState() {
+    error.value = null
+    valid.value = false
+    n.value = null
+    symbolsPerCard.value = null
+    totalSymbols.value = null
+    // keep already picked symbols and cards if you prefer; otherwise uncomment:
+    // cards.value = []
+    // selectedSymbols.value = []
+  }
+
+  // reset input so placeholder becomes visible + clear messages/results
   watch(mode, () => {
     howMany.value = null
+    resetValidationState()
+  })
+
+  // also clear messages/results when the quantity changes (n/k/s_c edited)
+  watch(howMany, () => {
+    resetValidationState()
   })
 
   // -------- derived / validation --------

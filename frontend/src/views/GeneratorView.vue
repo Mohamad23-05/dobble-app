@@ -30,7 +30,7 @@ const validationTitle = computed(() =>
 // Allowed n values (kept in sync with backend list)
 const ALLOWED_N = [2, 3, 4, 5, 7]
 const allowedNText = computed(() => ALLOWED_N.join(', '))
-const allowedKText = computed(() => ALLOWED_N.map(x => x * x + x + 1).join(', '))
+const allowedCText = computed(() => ALLOWED_N.map(x => x * x + x + 1).join(', '))
 const allowedSCText = computed(() => ALLOWED_N.map(x => x + 1).join(', '))
 
 // Friendlier message beside the SVG
@@ -51,11 +51,11 @@ const validationMessage = computed(() => {
       : `${reason} ${hint}`
   }
   if (mode.value === 'k') {
-    const hint = `Enter a cards count k in: ${allowedKText.value}.`
+    const hint = `Enter a cards count C in: ${allowedCText.value}.`
     return `${reason} ${hint}`
   }
   // mode === 'sc'
-  const hint = `Enter symbols per card (s/c) in: ${allowedSCText.value}.`
+  const hint = `Enter symbols per card (S/C) in: ${allowedSCText.value}.`
   return `${reason} ${hint}`
 })
 
@@ -319,18 +319,6 @@ async function onExport() {
     </form>
   </div>
 
-  <!-- show picker for symbols mode -->
-  <div v-if="valid && notation === 's'" class="panel mt-4">
-    <SymbolsPicker
-      v-model="selectedSymbols"
-      :totalSymbols="totalSymbols || 0"
-      :defaultSymbols="defaultSymbols"
-      :allowUpload="true"
-      :maxFileSizeMB="2"
-      @error="msg => (/* show nicely or log */ console.warn(msg))"
-    />
-  </div>
-
   <!-- Generate button -->
   <div class="mt-3 flex items-center gap-3">
     <button
@@ -378,7 +366,17 @@ async function onExport() {
     </span>
 
   </div>
-
+  <!-- show picker for symbols mode -->
+  <div v-if="valid && notation === 's'" class="panel mt-4">
+    <SymbolsPicker
+      v-model="selectedSymbols"
+      :totalSymbols="totalSymbols || 0"
+      :defaultSymbols="defaultSymbols"
+      :allowUpload="true"
+      :maxFileSizeMB="2"
+      @error="msg => (/* show nicely or log */ console.warn(msg))"
+    />
+  </div>
   <!-- Results -->
   <div v-if="cards.length" class="mt-6 gap-2.5 rounded">
     <h3 class="text-xl text-DarkSlateGray font-bold mb-3">Generated Cards</h3>
