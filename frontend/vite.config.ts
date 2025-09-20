@@ -12,15 +12,21 @@ export default defineConfig({
   plugins: [
     vue(),
     tailwind(),
-    svgLoader({
-      svgo: true,
+    v({
       svgoConfig: {
         plugins: [
-          {name: 'removeViewBox', active: false},   // keep viewBox for proper scaling
-          {name: 'removeDimensions', active: true}, // allow sizing via CSS (width/height)
-        ],
-      },
-    }),
+          {
+            name: 'removeViewBox',
+            active: false
+          },
+          {
+            name: 'removeDimensions',
+            active: true
+          }
+        ]
+      }
+    })
+    ,
   ],
   resolve: {
     alias: {

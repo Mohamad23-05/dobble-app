@@ -231,7 +231,7 @@ export async function exportPdf({
   }) => void
 }) {
   // Convert any non-data image src -> data URL, but keep ids as-is
-  const {urlToDataUrl} = await import('@/composables/dataUrl.ts')
+  const {urlToDataUrl} = await import('@/composables/dataUrl')
   const symbolsForApi = await Promise.all(
     symbolDefs.map(async s => {
       if (s.type !== 'image') return s

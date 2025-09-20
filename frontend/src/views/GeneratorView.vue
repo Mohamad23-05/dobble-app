@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {buildSymbolDefs, exportPdf, userGenerator} from "@/composables/useGenerator.ts";
+import {buildSymbolDefs, exportPdf, userGenerator} from "@/composables/useGenerator";
 import SymbolsPicker from "@/components/SymbolsPicker.vue"
 import {ref, computed, onUnmounted} from 'vue'
 
@@ -73,7 +73,7 @@ const exportError = ref<string | null>(null)
 // Lightweight global banner (errors/info)
 type Banner = { kind: 'error' | 'info', message: string }
 const banner = ref<Banner | null>(null)
-let bannerTimer: number | null = null
+let bannerTimer: ReturnType<typeof setTimeout> | null = null
 
 function showErrorBanner(message: string, autoHideMs = 6000) {
   banner.value = {kind: 'error', message}
