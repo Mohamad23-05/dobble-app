@@ -2,7 +2,7 @@ import {ref, computed, watch} from 'vue'
 import axios from 'axios'
 
 const base = import.meta.env.VITE_API_BASE;           // REQUIRED
-const backendLink = `${base.replace(/\/$/, '')}`;
+const backendLink = (base ?? '').replace(/\/$/, '');
 
 if (!backendLink) {
   // either: throw new Error('VITE_API_BASE is not set')
