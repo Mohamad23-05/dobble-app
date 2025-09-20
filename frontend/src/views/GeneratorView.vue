@@ -5,7 +5,7 @@ import {ref, computed, onUnmounted} from 'vue'
 
 
 // track the post-"done" delay to avoid races/unmounted updates
-let exportDoneTimer: ReturnType<typeof window.setTimeout> | null = null
+let exportDoneTimer: number | null = null
 
 // add all available PNGs
 const defaultSymbols = Object
@@ -73,7 +73,7 @@ const exportError = ref<string | null>(null)
 // Lightweight global banner (errors/info)
 type Banner = { kind: 'error' | 'info', message: string }
 const banner = ref<Banner | null>(null)
-let bannerTimer: ReturnType<typeof setTimeout> | null = null
+let bannerTimer: number | null = null
 
 function showErrorBanner(message: string, autoHideMs = 6000) {
   banner.value = {kind: 'error', message}

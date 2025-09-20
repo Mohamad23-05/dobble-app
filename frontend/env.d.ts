@@ -1,6 +1,5 @@
 /// <reference types="vite/client" />
 
-// Vue components
 declare module '*.vue' {
   import type {DefineComponent} from 'vue'
   const component: DefineComponent<{}, {}, any>
@@ -54,10 +53,3 @@ interface ImportMeta {
     }
   ): Record<string, T>
 }
-
-declare module '*.vue' {
-  import type {DefineComponent} from 'vue'
-  const component: DefineComponent<{}, {}, any>
-  export default component
-}
-
