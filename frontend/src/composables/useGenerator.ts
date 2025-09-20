@@ -1,7 +1,8 @@
 import {ref, computed, watch} from 'vue'
 import axios from 'axios'
 
-const backendLink = import.meta.env.VITE_API_BASE ?? 'http://127.0.0.1:8000/dobble'
+const base = import.meta.env.VITE_API_BASE;           // REQUIRED
+const backendLink = `${base.replace(/\/$/, '')}/dobble`;
 
 // finite letters set (you said you only allow A..Z)
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
