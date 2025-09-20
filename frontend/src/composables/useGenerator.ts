@@ -2,7 +2,15 @@ import {ref, computed, watch} from 'vue'
 import axios from 'axios'
 
 const base = import.meta.env.VITE_API_BASE;           // REQUIRED
-const backendLink = `${base.replace(/\/$/, '')}/dobble`;
+const backendLink = `${base.replace(/\/$/, '')}`;
+
+if (!backendLink) {
+  // either: throw new Error('VITE_API_BASE is not set')
+  // or: backendBase = ''; and call '/dobble/...' via same-origin proxy
+  Error('VITE_API_BASE is not set')
+
+}
+
 
 // finite letters set (you said you only allow A..Z)
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
@@ -93,7 +101,7 @@ export function userGenerator() {
     selectedSymbols.value = []
 
     try {
-      const {data} = await axios.get(`${backendLink}/validate`, {
+      const {data} = await axios.get(`${backendLink}/dobble/validate`, {
         params: {mode: mode.value, how_many: howMany.value ?? 0},
       })
       if (!data.valid) {
@@ -148,7 +156,7 @@ export function userGenerator() {
     }
 
     try {
-      const {data} = await axios.post(`${backendLink}/generate`, {
+      const {data} = await axios.post(`${backendLink}/dobble/generate`, {
         n: n.value,
         symbols: payloadSymbols,
       })
@@ -271,7 +279,7 @@ export async function exportPdf({
     let emittedProcessing = false
     let downloadStarted = false
 
-    const res = await axios.post(`${backendLink}/export/pdf`, payload, {
+    const res = await axios.post(`${backendLink}/dobble/export/pdf`, payload, {
       responseType: 'blob',
       onUploadProgress: e => {
         // Some browsers don't provide total; still report phase
