@@ -138,7 +138,7 @@ function toDataURL(f: File) {
             <input type="file" accept="image/*" multiple class="hidden" @change="onUploadFiles"/>
           </label>
           <p class="mt-2 text-xs opacity-60">
-            PNG/JPG/WebP/SVG, up to {{ maxFileSizeMB ?? 2 }} MB each.
+            PNG/JPG/WebP, up to {{ maxFileSizeMB ?? 2 }} MB each.
           </p>
         </div>
 
