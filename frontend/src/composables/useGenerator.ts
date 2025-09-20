@@ -265,35 +265,73 @@ export async function exportPdf({
 
   try {
     onProgress?.({phase: 'upload', percent: 0})
+
+    let uploadComplete = false
+    let emittedProcessing = false
+    let downloadStarted = false
+
     const res = await axios.post(`${backendLink}/export/pdf`, payload, {
       responseType: 'blob',
       onUploadProgress: e => {
-        if (!e.total) return onProgress?.({phase: 'upload'})
-        onProgress?.({phase: 'upload', percent: Math.round((e.loaded / e.total) * 100)})
+        // Some browsers don't provide total; still report phase
+        if (!e.total) {
+          onProgress?.({phase: 'upload'})
+          return
+        }
+        const pct = Math.round((e.loaded / e.total) * 100)
+        onProgress?.({phase: 'upload', percent: pct})
+
+        if (pct >= 100) {
+          uploadComplete = true
+          if (!emittedProcessing) {
+            onProgress?.({phase: 'processing'})
+            emittedProcessing = true
+          }
+        }
       },
       onDownloadProgress: e => {
-        if (!e.total) return onProgress?.({phase: 'download'})
-        onProgress?.({phase: 'download', percent: Math.round((e.loaded / e.total) * 100)})
+        if (!downloadStarted) {
+          downloadStarted = true
+          // If we never got a 100% upload event, still show processing once before download
+          if (!emittedProcessing) {
+            onProgress?.({phase: 'processing'})
+            emittedProcessing = true
+          }
+        }
+        if (!e.total) {
+          onProgress?.({phase: 'download'})
+          return
+        }
+        onProgress?.({
+          phase: 'download',
+          percent: Math.round((e.loaded / e.total) * 100)
+        })
       },
     })
-    onProgress?.({phase: 'processing'})
+
+    // In cases with tiny responses, it's possible no download progress fired.
+    if (uploadComplete && !downloadStarted && !emittedProcessing) {
+      onProgress?.({phase: 'processing'})
+      emittedProcessing = true
+    }
 
     const blob = new Blob([res.data], {type: 'application/pdf'})
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = 'dobble_cards.pdf'
+    // a rel/target are optional; click then revoke URL on next tick to avoid early revocation issues
     a.click()
-    URL.revokeObjectURL(url)
+    window.setTimeout(() => URL.revokeObjectURL(url), 0)
 
     onProgress?.({phase: 'done', percent: 100})
   } catch (err: any) {
     const blob = err?.response?.data
     if (blob instanceof Blob) {
       const text = await blob.text()
-      console.error("Export PDF failed:", text)
+      console.error('Export PDF failed:', text)
     } else {
-      console.error("Export PDF failed:", err)
+      console.error('Export PDF failed:', err)
     }
     throw err
   }

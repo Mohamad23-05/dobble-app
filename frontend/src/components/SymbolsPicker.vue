@@ -59,13 +59,18 @@ function onDragLeave() {
 async function handleFiles(files: File[]) {
   const maxBytes = (props.maxFileSizeMB ?? 2) * 1024 * 1024
   for (const f of files) {
-    const ok = /^image\/(png|jpeg|webp|svg\+xml)$/.test(f.type)
+    // Disallow SVGs completely; allow only PNG/JPEG/WebP
+    if (f.type === 'image/svg+xml') {
+      emit('error', `For safety reasons, SVG files are not allowed: ${f.name}. Please upload PNG, JPG, or WebP.`)
+      continue
+    }
+    const ok = /^image\/(png|jpeg|webp)$/.test(f.type)
     if (!ok) {
-      emit('error', `Unsupported file: ${f.name}`);
+      emit('error', `Unsupported file type for ${f.name}. Please upload PNG, JPG, or WebP.`)
       continue
     }
     if (f.size > maxBytes) {
-      emit('error', `Too large: ${f.name}`);
+      emit('error', `File is too large: ${f.name}. Max size is ${props.maxFileSizeMB ?? 2} MB.`)
       continue
     }
     const dataUrl = await toDataURL(f)
@@ -135,10 +140,16 @@ function toDataURL(f: File) {
             class="inline-block mt-2 px-3 py-1 rounded bg-gray-100 border text-DarkSlateGray cursor-pointer"
           >
             Browse files
-            <input type="file" accept="image/*" multiple class="hidden" @change="onUploadFiles"/>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              multiple
+              class="hidden"
+              @change="onUploadFiles"
+            />
           </label>
           <p class="mt-2 text-xs opacity-60">
-            PNG/JPG/WebP, up to {{ maxFileSizeMB ?? 2 }} MB each.
+            PNG/JPG/WebP only, up to {{ maxFileSizeMB ?? 2 }} MB each.
           </p>
         </div>
 

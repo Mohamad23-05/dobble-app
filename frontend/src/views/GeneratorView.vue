@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import {buildSymbolDefs, exportPdf, userGenerator} from "@/composables/useGenerator.ts";
 import SymbolsPicker from "@/components/SymbolsPicker.vue"
-import {ref, computed} from "vue"
+import {ref, computed, onUnmounted} from 'vue'
+
+
+// track the post-"done" delay to avoid races/unmounted updates
+let exportDoneTimer: ReturnType<typeof window.setTimeout> | null = null
 
 // add all available PNGs
 const defaultSymbols = Object
@@ -66,6 +70,23 @@ const exportPhase = ref<'upload' | 'processing' | 'download' | 'done' | null>(nu
 const exportPercent = ref<number | null>(null)
 const exportError = ref<string | null>(null)
 
+// Lightweight global banner (errors/info)
+type Banner = { kind: 'error' | 'info', message: string }
+const banner = ref<Banner | null>(null)
+let bannerTimer: number | null = null
+
+function showErrorBanner(message: string, autoHideMs = 6000) {
+  banner.value = {kind: 'error', message}
+  if (bannerTimer) {
+    window.clearTimeout(bannerTimer)
+    bannerTimer = null
+  }
+  bannerTimer = window.setTimeout(() => {
+    banner.value = null
+    bannerTimer = null
+  }, autoHideMs)
+}
+
 const exportLabel = computed(() => {
   switch (exportPhase.value) {
     case 'upload':
@@ -81,39 +102,82 @@ const exportLabel = computed(() => {
   }
 })
 
-
 async function onExport() {
+  // clear any pending "done" timeout from a previous export
+  if (exportDoneTimer) {
+    window.clearTimeout(exportDoneTimer)
+    exportDoneTimer = null
+  }
+
   exporting.value = true
   exportPhase.value = null
   exportPercent.value = null
   exportError.value = null
 
-  const defs = buildSymbolDefs(notation.value, totalSymbols.value!, selectedSymbols.value)
+  // Guard required inputs instead of using non-null assertions
+  if (!n.value || !symbolsPerCard.value || !totalSymbols.value || !Array.isArray(cards.value) || cards.value.length === 0) {
+    exportError.value = 'Missing required values. Validate and generate cards first.'
+    showErrorBanner(exportError.value)
+    exporting.value = false
+    return
+  }
+
+  const defs = buildSymbolDefs(notation.value, totalSymbols.value, selectedSymbols.value)
+
+  // If using symbol images, ensure selection count matches and cards reference only known ids
+  if (notation.value === 's') {
+    if (selectedSymbols.value.length !== totalSymbols.value) {
+      exportError.value = `Pick exactly ${totalSymbols.value} symbols before exporting.`
+      showErrorBanner(exportError.value)
+      exporting.value = false
+      return
+    }
+    const idSet = new Set(defs.map(d => d.id))
+    const unknown = cards.value.flat().find(id => !idSet.has(id))
+    if (unknown) {
+      exportError.value = `A card references a symbol that wasn't provided. Please regenerate and try again.`
+      showErrorBanner(exportError.value)
+      exporting.value = false
+      return
+    }
+  }
+
   try {
     await exportPdf({
-      n: n.value!,
-      symbolsPerCard: symbolsPerCard.value!,
-      numCards: totalSymbols.value!,
+      n: n.value,
+      symbolsPerCard: symbolsPerCard.value,
+      numCards: totalSymbols.value,
       cards: cards.value,
       symbolDefs: defs,
       onProgress: ({phase, percent}) => {
+        // ensure "processing" appears between upload and download (handled inside exportPdf),
+        // here we just reflect the reported state
         exportPhase.value = phase
         exportPercent.value = percent ?? null
       }
     })
   } catch (e: any) {
     exportError.value = e?.message || 'Export failed'
+    showErrorBanner(exportError.value ?? 'Export failed')
   } finally {
     // Keep the banner briefly on "done" for UX, then hide
     if (exportPhase.value === 'done' && !exportError.value) {
-      setTimeout(() => {
+      exportDoneTimer = window.setTimeout(() => {
         exporting.value = false
+        exportDoneTimer = null
       }, 600)
     } else {
       exporting.value = false
     }
   }
 }
+
+onUnmounted(() => {
+  if (exportDoneTimer) {
+    window.clearTimeout(exportDoneTimer)
+    exportDoneTimer = null
+  }
+})
 </script>
 
 <template>
@@ -142,6 +206,38 @@ async function onExport() {
         class="ml-2 px-3 py-1 rounded bg-white/10 hover:bg-white/20"
         @click="exporting = false"
         aria-label="Hide export status"
+      >
+        ✕
+      </button>
+    </div>
+  </transition>
+
+  <!-- Error/info banner (upload or export issues) -->
+  <transition name="fade">
+    <div
+      v-if="banner"
+      :class="['fixed left-0 right-0 z-50 flex items-start gap-3 px-4 py-2 shadow-md', exporting ? 'top-12' : 'top-0', banner.kind === 'error' ? 'bg-red-600 text-white' : 'bg-blue-600 text-white']"
+      role="alert"
+      aria-live="assertive"
+    >
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" class="min-w-[22px]">
+        <circle cx="12" cy="12" r="10" fill="currentColor" opacity=".15"/>
+        <path d="M12 7v7m0 3h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              fill="none"/>
+      </svg>
+      <div class="flex-1">
+        <div class="font-semibold">
+          {{ banner.kind === 'error' ? 'Something went wrong' : 'Notice' }}
+        </div>
+        <p class="text-sm opacity-95">
+          {{ banner.message }}
+        </p>
+      </div>
+      <button
+        type="button"
+        class="ml-2 px-3 py-1 rounded bg-white/10 hover:bg-white/20"
+        @click="banner = null"
+        aria-label="Dismiss message"
       >
         ✕
       </button>
