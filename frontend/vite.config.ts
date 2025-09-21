@@ -17,15 +17,8 @@ export default defineConfig(({mode}) => {
         svgo: true,
         svgoConfig: {
           plugins: [
-            {
-              name: 'preset-default',
-              params: {
-                overrides: {
-                  removeViewBox: false, // keep viewBox
-                },
-              },
-            },
-            'removeDimensions', // allow CSS sizing
+            {name: 'removeViewBox'},   // keep viewBox for proper scaling
+            {name: 'removeDimensions'}, // allow sizing via CSS (width/height)
           ],
         },
       }),
