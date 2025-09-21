@@ -616,20 +616,10 @@ onUnmounted(() => {
 
 /* submit button */
 .submit {
-  @apply flex items-center justify-center px-12 py-1 gap-2.5 text-2xl text-DarkSlateGray bg-Vanilla rounded-2xl;
+  @apply inline-flex items-center rounded-2xl px-4 py-2 bg-Vanilla text-Auburn-Light hover:opacity-90 transition;
   border: 2px solid var(--color-Auburn);
   box-shadow: 0 1px 0 rgba(255, 255, 255, .5) inset, 0 2px 0 var(--shadow);
   cursor: pointer;
-}
-
-.submit:hover {
-  transform: translateY(-1px);
-  background: #f3d08d;
-
-}
-
-.submit:active {
-  transform: translateY(0);
 }
 
 /* ===== Responsive (use concrete values equivalent to your vars) ===== */

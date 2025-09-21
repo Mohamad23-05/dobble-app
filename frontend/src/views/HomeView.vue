@@ -1,53 +1,108 @@
 <script setup lang="ts">
 import breakLine from '@/assets/svgs/break-line.svg';
 import FanoPlane from '@/assets/svgs/Fano-Ebene-farbig.svg';
+import DobblePair from '@/assets/img/Dobble-Pair.png'
+import KartenDeckPlaneten from '@/assets/img/KartenDeckPlaneten.png'
+
 </script>
 
 <template>
-
-  <div class="generate-und-rules bg-DarkSlateGray rounded-2xl mb-4 py-5">
-    <p>
-      If you are interested in the theory behind <strong> the projective plane</strong>, you can
-      read more about it down below.
-      <br>
-      if Not, you can generate your own card sets of
-      <a href="https://www.dobblegame.com/en/homepage/" target="_blank">Dobble</a> >
-      <RouterLink to="/generator" class="link"> here</RouterLink>
+  <!-- HERO (single h1 on page) -->
+  <section class="bg-DarkSlateGray rounded-2xl mb-6 p-6 md:p-8">
+    <h1 class="text-2xl md:text-3xl font-semibold mb-3">
+      Build your own Dobble card set
+    </h1>
+    <p class="mb-4">
+      Dobble works because of a neat bit of math: in a <strong>finite projective plane</strong>,
+      any two lines meet in exactly one point — so any two cards share exactly one symbol.
+      Want details? See below. Prefer to play? Generate a deck now.
     </p>
-  </div>
+    <div class="flex flex-wrap gap-3">
+      <RouterLink
+        to="/generator"
+        class="inline-flex items-center rounded-2xl px-4 py-2 bg-Vanilla text-black hover:opacity-90 transition"
+        aria-label="Open the Dobble card generator"
+      >
+        Generate cards
+      </RouterLink>
+      <a
+        href="https://www.dobblegame.com/en/homepage/"
+        target="_blank" rel="noopener"
+        class="inline-flex items-center rounded-2xl px-4 py-2 border border-Vanilla text-Vanilla hover:bg-Vanilla hover:text-black transition"
+      >
+        What is Dobble?
+      </a>
+    </div>
+  </section>
 
-  <div class="flex flex-col md:flex-row gap-4">
+  <!-- TWO COLUMNS -->
+  <section class="flex flex-col md:flex-row gap-6">
+    <!-- LEFT: why it works + Fano -->
+    <div class="md:flex-1 bg-DarkSlateGray rounded-2xl p-6 space-y-4">
+      <h1 class="text-xl md:text-2xl font-semibold">Why Dobble ↔ projective plane?</h1>
 
-    <!-- left block -->
-    <div class="md:flex-1 bg-DarkSlateGray rounded-2xl space-y-4 px-3 py-10">
-      <div class="lex flex-col items-center">
-        <h1 class="px-4">The finite projective plane</h1>
-      </div>
+      <p class="text-sm opacity-90">
+        Map <strong>cards → lines</strong> and <strong>symbols → points</strong>:
+      </p>
+      <ul class="list-disc pl-6 text-sm opacity-90 space-y-1">
+        <li>Each line/card has <code>n + 1</code> points/symbols.</li>
+        <li>Each point/symbol lies on <code>n + 1</code> lines/cards.</li>
+        <li>Any two lines/cards meet in exactly one point/symbol.</li>
+      </ul>
 
-      <div class="plane-def px-5">
-        <h2 class="">A projective plane of order n has the following properties:</h2>
-        <ul class="plane-prop">
-          <li>exactly n^2 + n + 1 lines, each line containing n + 1 points,</li>
-          <li>each point lies on exactly n + 1 lines, and</li>
-          <li>any two distinct lines intersect in exactly one point.</li>
-        </ul>
+      <figure class="mt-2">
+        <img
+          :src="DobblePair"
+          alt="Two Dobble cards illustrating the one-shared-symbol property"
+          class="mx-auto w-full max-w-md rounded-xl shadow"
+        />
+        <figcaption class="mt-2 text-center text-xs text-Vanilla/70">
+          Pick any two cards — there’s exactly one symbol in common.
+        </figcaption>
+      </figure>
+
+      <h2 class="text-lg font-medium">The Fano plane (n = 2)</h2>
+      <div class="w-full flex justify-center">
+        <FanoPlane class="w-4/5 md:w-full max-w-md h-auto"/>
       </div>
     </div>
 
-    <!-- divider: horizontal on mobile, vertical on md+ -->
-    <div class="w-full h-px bg-Vanilla md:w-px md:h-auto md:self-stretch"></div>
+    <!-- DIVIDER -->
+    <div class="w-full h-px bg-Auburn md:w-px md:h-auto md:self-stretch"></div>
 
-    <!-- right block -->
-    <div class="md:flex-1 bg-DarkSlateGray rounded-2xl space-y-4">
-      <div class="fano-plane">
-        <div class="w-full flex justify-center">
-          <FanoPlane class="w-2/4 h-auto"/>
-        </div>
-        <h2>A very popular example of the projective plane is the Fano plane:</h2>
-      </div>
+    <!-- RIGHT: example deck + formal definition -->
+    <div class="md:flex-1 bg-DarkSlateGray rounded-2xl p-6 space-y-4">
+      <h1 class="text-xl md:text-2xl font-semibold">Example deck (planets, n = 2)</h1>
+      <p class="text-sm opacity-90">
+        Seven planet names (Jupiter, Venus, Uranus, Merkur, Neptun, Mars, Saturn) form a tiny set:
+        <strong>7 cards</strong>, <strong>3 symbols per card</strong>, and any two cards share
+        exactly one symbol.
+      </p>
+      <figure>
+        <img
+          :src="KartenDeckPlaneten"
+          alt="Seven Dobble-style cards with planet names; any two cards share exactly one planet"
+          class="mx-auto w-full max-w-xl rounded-xl shadow"
+          loading="lazy"
+        />
+        <figcaption class="mt-2 text-center text-xs text-Vanilla/70">
+          Try it: pick any two squares — find the single shared planet.
+        </figcaption>
+      </figure>
+
+      <hr class="text-Vanilla my-2"/>
+
+      <h1 class="text-lg font-medium">Formal definition</h1>
+      <p class="text-sm opacity-90">A projective plane of order <em>n</em> has:</p>
+      <ul class="list-disc pl-6 text-sm opacity-90">
+        <li>exactly <code>n² + n + 1</code> lines, each containing <code>n + 1</code> points,</li>
+        <li>each point lies on exactly <code>n + 1</code> lines, and</li>
+        <li>any two distinct lines intersect in exactly one point.</li>
+      </ul>
     </div>
-  </div>
+  </section>
 </template>
+
 
 <style scoped>
 @reference "@/assets/main.css";
@@ -58,7 +113,7 @@ import FanoPlane from '@/assets/svgs/Fano-Ebene-farbig.svg';
 }
 
 .plane-prop {
-  @apply flex flex-col gap-1 md:gap-7  list-disc list-inside;
+  @apply flex flex-col  md:gap-7  list-disc list-inside;
 }
 
 li {
