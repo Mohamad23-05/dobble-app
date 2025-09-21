@@ -111,7 +111,7 @@ def layout_card(
     base_angle = 360 / n_slots
     positions: List[Tuple[float, float, float, float]] = []
 
-    # ring strategy: only 'single' or default ('auto')
+    # rings (same as yours)
     if rconf.ring_strategy == "single":
         ring_break = n_slots
         inner_r = outer_r = card_radius_mm * 0.75
@@ -124,23 +124,49 @@ def layout_card(
             ring_break = n_slots
             inner_r = outer_r = card_radius_mm * 0.75
 
+    # ---- NEW: per-ring mixture for sizes (S/M/L) ----
+    # weights = (small, medium, large)
+    inner_mix = getattr(rconf, "mix_inner", (0.25, 0.50, 0.25))
+    outer_mix = getattr(rconf, "mix_outer", (0.55, 0.35, 0.10))
+
+    # multipliers applied on top of your base rconf.scale
+    mul_small = getattr(rconf, "mul_small", (0.65, 0.90))
+    mul_medium = getattr(rconf, "mul_medium", (0.90, 1.10))
+    mul_large = getattr(rconf, "mul_large", (1.20, 1.60))
+
+    def _choose_cat(weights):
+        r = rnd.random()
+        a, b, c = weights
+        return "small" if r < a else ("medium" if r < a + b else "large")
+
+    def _mul_range(cat):
+        return {"small": mul_small, "medium": mul_medium, "large": mul_large}[cat]
+
+    # --------------------------------------------------
+
     for i in range(n_slots):
         angle = base_angle * i
         angle += _rand_between(rnd, -rconf.angular_jitter_deg, rconf.angular_jitter_deg)
-        ring_r = inner_r if i < ring_break else outer_r
+
+        inner = i < ring_break
+        ring_r = inner_r if inner else outer_r
         rj = _rand_between(rnd, -rconf.radial_jitter_mm, rconf.radial_jitter_mm)
         rr = max(0, ring_r + rj)
+
         th = _deg2rad(angle)
         x = rr * math.cos(th)
         y = rr * math.sin(th)
 
-        # rotation range [min, max]
         rot_min = (rconf.rotation_deg.min if rconf.rotation_deg else 0.0)
         rot_max = (rconf.rotation_deg.max if rconf.rotation_deg else 0.0)
         rot = _rand_between(rnd, rot_min, rot_max)
 
-        # scale range [min, max]
-        sc = _rand_between(rnd, rconf.scale.min, rconf.scale.max)
+        # base scale from your config, then ring-specific size category
+        base_sc = _rand_between(rnd, rconf.scale.min, rconf.scale.max)
+        cat = _choose_cat(inner_mix if inner else outer_mix)
+        lo, hi = _mul_range(cat)
+        sc = base_sc * _rand_between(rnd, lo, hi)
+
         positions.append((x, y, rot, sc))
     return positions
 
