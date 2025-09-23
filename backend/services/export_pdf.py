@@ -106,68 +106,91 @@ def layout_card(
         n_slots: int,
         card_radius_mm: float,
         rnd: random.Random,
-        rconf: RandomSpec
-) -> list[tuple[float, float, float, float]]:
-    base_angle = 360 / n_slots
+        rconf: RandomSpec,
+) -> List[Tuple[float, float, float, float]]:
+    """
+    Berechnet die Symbol-Positionen für genau einen Ring (max. 8 Symbole pro Karte).
+
+    Rückgabe: Liste von Tupeln (x_mm, y_mm, rot_deg, scale) relativ zur Kartenmitte.
+    - x_mm, y_mm: Position in Millimetern (relativ zum Kartenmittelpunkt)
+    - rot_deg: Rotation des Symbols in Grad
+    - scale: Skalierungsfaktor (dimensionlos)
+
+    Verwendete rconf-Felder:
+      - angular_jitter_deg: max. Winkeljitter (+/-)
+      - radial_jitter_mm:  max. radialer Jitter (+/-)
+      - rotation_deg:      Optional RangeSpec(min, max) für Symbolrotation
+      - scale:             RangeSpec(min, max) als Basisskalierung
+      - seed:              Optional Seed für rnd (hier nicht neu gesetzt)
+      - (optional) mix:            Gewichte (small, medium, large), default (0.4, 0.4, 0.2)
+      - (optional) mul_small:      (lo, hi) Multiplikatorbereich für "small",  default (0.80, 0.95)
+      - (optional) mul_medium:     (lo, hi) Multiplikatorbereich für "medium", default (0.95, 1.10)
+      - (optional) mul_large:      (lo, hi) Multiplikatorbereich für "large",  default (1.15, 1.50)
+      - (optional) ring_radius_ratio: Verhältnis Ringradius/Kartenradius, default 0.75
+    """
+    base_angle = 360.0 / n_slots
     positions: List[Tuple[float, float, float, float]] = []
 
-    # rings (same as yours)
-    if rconf.ring_strategy == "single":
-        ring_break = n_slots
-        inner_r = outer_r = card_radius_mm * 0.75
-    else:
-        if n_slots >= 8:
-            ring_break = math.floor(n_slots / 2)
-            inner_r = card_radius_mm * 0.58
-            outer_r = card_radius_mm * 0.88
-        else:
-            ring_break = n_slots
-            inner_r = outer_r = card_radius_mm * 0.75
+    # Fester Ein-Ring-Ansatz
+    ring_radius_ratio = getattr(rconf, "ring_radius_ratio", 0.75)
+    ring_r = max(0.0, card_radius_mm * float(ring_radius_ratio))
 
-    # ---- NEW: per-ring mixture for sizes (S/M/L) ----
-    # weights = (small, medium, large)
-    inner_mix = getattr(rconf, "mix_inner", (0.25, 0.50, 0.25))
-    outer_mix = getattr(rconf, "mix_outer", (0.55, 0.35, 0.10))
+    # Größenkategorien (einheitlich für den Ring)
+    mix = getattr(rconf, "mix", (0.60, 0.30, 0.10))  # (small, medium, large)
+    mul_small = getattr(rconf, "mul_small", (0.80, 0.95))
+    mul_medium = getattr(rconf, "mul_medium", (0.95, 1.10))
+    mul_large = getattr(rconf, "mul_large", (1.15, 1.50))
 
-    # multipliers applied on top of your base rconf.scale
-    mul_small = getattr(rconf, "mul_small", (0.65, 0.90))
-    mul_medium = getattr(rconf, "mul_medium", (0.90, 1.10))
-    mul_large = getattr(rconf, "mul_large", (1.20, 1.60))
-
-    def _choose_cat(weights):
+    def _choose_size_category() -> str:
         r = rnd.random()
-        a, b, c = weights
-        return "small" if r < a else ("medium" if r < a + b else "large")
+        a, b, c = mix
+        # numerisch robust clampen
+        a = max(0.0, min(1.0, a))
+        b = max(0.0, min(1.0 - a, b))
+        # c implizit = 1 - (a+b); bei kleiner Rundungsabweichung tolerieren
+        # small, medium, large
+        if r < a:
+            return "small"
+        if r < a + b:
+            return "medium"
+        return "large"
 
-    def _mul_range(cat):
+    def _mul_range(cat: str) -> Tuple[float, float]:
         return {"small": mul_small, "medium": mul_medium, "large": mul_large}[cat]
 
-    # --------------------------------------------------
+    # Rotationseinstellungen
+    rot_min = rconf.rotation_deg.min if getattr(rconf, "rotation_deg", None) else 0.0
+    rot_max = rconf.rotation_deg.max if getattr(rconf, "rotation_deg", None) else 0.0
+
+    # Basisskalierung
+    base_scale_min = float(rconf.scale.min)
+    base_scale_max = float(rconf.scale.max)
 
     for i in range(n_slots):
+        # Winkel gleichmäßig + Jitter
         angle = base_angle * i
         angle += _rand_between(rnd, -rconf.angular_jitter_deg, rconf.angular_jitter_deg)
 
-        inner = i < ring_break
-        ring_r = inner_r if inner else outer_r
+        # Radius + radialer Jitter
         rj = _rand_between(rnd, -rconf.radial_jitter_mm, rconf.radial_jitter_mm)
-        rr = max(0, ring_r + rj)
+        rr = max(0.0, ring_r + rj)
 
-        th = _deg2rad(angle)
-        x = rr * math.cos(th)
-        y = rr * math.sin(th)
+        # Polarkoordinaten -> kartesisch (mm)
+        theta = math.radians(angle)
+        x = rr * math.cos(theta)
+        y = rr * math.sin(theta)
 
-        rot_min = (rconf.rotation_deg.min if rconf.rotation_deg else 0.0)
-        rot_max = (rconf.rotation_deg.max if rconf.rotation_deg else 0.0)
-        rot = _rand_between(rnd, rot_min, rot_max)
+        # Symbolrotation
+        rot = _rand_between(rnd, float(rot_min), float(rot_max))
 
-        # base scale from your config, then ring-specific size category
-        base_sc = _rand_between(rnd, rconf.scale.min, rconf.scale.max)
-        cat = _choose_cat(inner_mix if inner else outer_mix)
+        # Basisscale * größenkategorie
+        base_sc = _rand_between(rnd, base_scale_min, base_scale_max)
+        cat = _choose_size_category()
         lo, hi = _mul_range(cat)
-        sc = base_sc * _rand_between(rnd, lo, hi)
+        sc = base_sc * _rand_between(rnd, float(lo), float(hi))
 
         positions.append((x, y, rot, sc))
+
     return positions
 
 

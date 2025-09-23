@@ -100,10 +100,10 @@ class PageOpts(BaseModel):
 
 
 class CardOpts(BaseModel):
-    diameter_mm: float = 80.0
+    diameter_mm: float = 120.0
     stroke_mm: float = 0.4
     bleed_mm: float = 0.0
-    per_page: int = 6
+    per_page: int = 2
     cut_marks: bool = True
 
 
