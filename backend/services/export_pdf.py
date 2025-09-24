@@ -104,98 +104,110 @@ def _deg2rad(deg: float) -> float:
 # layout: return list of (x_mm, y_mm, angle_deg, scale) for each symbol slot
 def layout_card(
         n_slots: int,
-        card_radius_mm: float,  # = Kartenradius
+        card_radius_mm: float,
         rnd: random.Random,
-        rconf
+        rconf: RandomSpec,
 ) -> List[Tuple[float, float, float, float]]:
+    """
+    Place symbols on a single ring with collision avoidance and a bias that allows
+    larger symbols to sit closer to the center. Returns (x_mm, y_mm, rot_deg, scale)
+    for each symbol, relative to the card center.
+    """
     base_angle = 360.0 / n_slots
     positions: List[Tuple[float, float, float, float]] = []
 
-    # Grundring
-    ring_r = max(0.0, card_radius_mm * float(getattr(rconf, "ring_radius_ratio", 0.75)))
+    # Base ring radius (fraction of card radius)
+    ring_radius_ratio = float(getattr(rconf, "ring_radius_ratio", 0.75))
+    ring_r = max(0.0, card_radius_mm * ring_radius_ratio)
 
-    # Kategorien-Mix
-    mix = getattr(rconf, "mix", (0.60, 0.30, 0.10))
+    # Size categories and multipliers
+    mix = getattr(rconf, "mix", (0.60, 0.30, 0.10))  # (small, medium, large)
     mul_small = getattr(rconf, "mul_small", (0.80, 0.95))
-    mul_medium = getattr(rconf, "mul_medium", (0.80, 1.5))
-    mul_large = getattr(rconf, "mul_large", (1.10, 1.30))
+    mul_medium = getattr(rconf, "mul_medium", (0.95, 1.10))
+    mul_large = getattr(rconf, "mul_large", (1.15, 1.50))
 
     def _choose_size_category(rng: random.Random) -> str:
         r = rng.random()
         a, b, _ = mix
-        if r < a: return "small"
-        if r < a + b: return "medium"
+        if r < a:
+            return "small"
+        if r < a + b:
+            return "medium"
         return "large"
 
-    def _mul_range(cat: str):
+    def _mul_range(cat: str) -> Tuple[float, float]:
         return {"small": mul_small, "medium": mul_medium, "large": mul_large}[cat]
 
-    # Jitter & Defaults
+    # Jitter & ranges
     ang_jit = float(getattr(rconf, "angular_jitter_deg", 0.0))
     rad_jit = float(getattr(rconf, "radial_jitter_mm", 0.0))
-    rot_min = getattr(getattr(rconf, "rotation_deg", None), "min", 0.0)
-    rot_max = getattr(getattr(rconf, "rotation_deg", None), "max", 0.0)
-    scale_min = float(rconf.scale.min)
-    scale_max = float(rconf.scale.max)
+    rot_min = float(getattr(getattr(rconf, "rotation_deg", None), "min", 0.0))
+    rot_max = float(getattr(getattr(rconf, "rotation_deg", None), "max", 0.0))
+    base_scale_min = float(rconf.scale.min)
+    base_scale_max = float(rconf.scale.max)
 
-    # Overlap-Schutz
-    symbol_box_frac = float(getattr(rconf, "symbol_box_frac", 0.20))  # Anteil Karten-Durchmesser
+    # Collision model: approximate symbols by disks derived from their square box
+    # symbol_box_frac matches the base draw size (fraction of diameter)
+    symbol_box_frac = float(getattr(rconf, "symbol_box_frac", 0.20))
     overlap_margin_mm = float(getattr(rconf, "overlap_margin_mm", 1.0))
 
-    placed: List[Tuple[float, float, float]] = []  # (x, y, eff_r)
+    placed: List[Tuple[float, float, float]] = []  # (x_mm, y_mm, eff_radius_mm)
 
     for i in range(n_slots):
         # 1) Base angle with jitter
         angle = base_angle * i + _rand_between(rnd, -ang_jit, ang_jit)
 
-        # 2) Scaling
-        base_sc = _rand_between(rnd, scale_min, scale_max)
+        # 2) Scale: base scale times category multiplier
+        base_sc = _rand_between(rnd, base_scale_min, base_scale_max)
         cat = _choose_size_category(rnd)
         lo, hi = _mul_range(cat)
         sc = base_sc * _rand_between(rnd, float(lo), float(hi))
 
-        # 3) Effective symbol radius
+        # 3) Rotation
+        rot = _rand_between(rnd, rot_min, rot_max)
+
+        # 4) Effective symbol radius (disk that contains the square draw box)
+        # side ≈ diameter * symbol_box_frac * scale = (2 * card_radius) * frac * sc
         side_mm = (2.0 * card_radius_mm) * symbol_box_frac * sc
         eff_r = side_mm / math.sqrt(2.0)
 
-        # 4) Radius suggestion
+        # 5) Baseline radius suggestion and bounds
         rr_base = max(0.0, ring_r + _rand_between(rnd, -rad_jit, rad_jit))
         max_rr = max(0.0, card_radius_mm - eff_r - 0.2)
 
-        # 5) Placement attempts
-        best = None
+        # 6) Try to place without collisions; bias attempts inward
+        best_xy: Optional[Tuple[float, float]] = None
         for attempt in range(20):
-            ang = angle + (0 if attempt == 0 else _rand_between(rnd, -6.0, 6.0))
+            # small angular wiggle on retries
+            ang = angle + (0.0 if attempt == 0 else _rand_between(rnd, -6.0, 6.0))
             theta = math.radians(ang)
-            rr = min(rr_base - (attempt * 0.4), max_rr)
-            rr = max(0.0, rr)
+            # progressively move inward on retries to help large symbols fit near center
+            rr = rr_base - (attempt * 0.4)
+            rr = max(0.0, min(rr, max_rr))
 
             x = rr * math.cos(theta)
             y = rr * math.sin(theta)
 
-            # Collision check
+            # Collision check against previously placed symbols
             ok = True
             for (px, py, peff) in placed:
                 if math.hypot(x - px, y - py) < (eff_r + peff + overlap_margin_mm):
                     ok = False
                     break
             if ok:
-                best = (x, y)
+                best_xy = (x, y)
                 break
 
-        # Fallback
-        if best is None:
+        # 7) Fallback if no collision-free spot found: slightly shrink and clamp radius
+        if best_xy is None:
             sc *= 0.9
             side_mm = (2.0 * card_radius_mm) * symbol_box_frac * sc
             eff_r = side_mm / math.sqrt(2.0)
             theta = math.radians(angle)
-            best = (min(rr_base, max_rr) * math.cos(theta),
-                    min(rr_base, max_rr) * math.sin(theta))
+            rr = max(0.0, min(rr_base, max_rr))
+            best_xy = (rr * math.cos(theta), rr * math.sin(theta))
 
-        # 6) Rotation
-        rot = _rand_between(rnd, rot_min, rot_max)
-
-        (x, y) = best
+        x, y = best_xy
         positions.append((x, y, rot, sc))
         placed.append((x, y, eff_r))
 
