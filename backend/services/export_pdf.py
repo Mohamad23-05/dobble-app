@@ -145,35 +145,35 @@ def layout_card(
     placed: List[Tuple[float, float, float]] = []  # (x, y, eff_r)
 
     for i in range(n_slots):
-        # 1) Basiswinkel mit Jitter
+        # 1) Base angle with jitter
         angle = base_angle * i + _rand_between(rnd, -ang_jit, ang_jit)
 
-        # 2) Skalierung
+        # 2) Scaling
         base_sc = _rand_between(rnd, scale_min, scale_max)
         cat = _choose_size_category(rnd)
         lo, hi = _mul_range(cat)
         sc = base_sc * _rand_between(rnd, float(lo), float(hi))
 
-        # 3) Effektiver Symbolradius (halbe Diagonale)
+        # 3) Effective symbol radius
         side_mm = (2.0 * card_radius_mm) * symbol_box_frac * sc
         eff_r = side_mm / math.sqrt(2.0)
 
-        # 4) Radiusvorschlag
+        # 4) Radius suggestion
         rr_base = max(0.0, ring_r + _rand_between(rnd, -rad_jit, rad_jit))
         max_rr = max(0.0, card_radius_mm - eff_r - 0.2)
 
-        # 5) Platzierungsversuche
+        # 5) Placement attempts
         best = None
-        for t in range(36):
-            ang = angle + (0 if t == 0 else _rand_between(rnd, -6.0, 6.0))
+        for attempt in range(20):
+            ang = angle + (0 if attempt == 0 else _rand_between(rnd, -6.0, 6.0))
             theta = math.radians(ang)
-            rr = min(rr_base - (t * 0.4), max_rr)
+            rr = min(rr_base - (attempt * 0.4), max_rr)
             rr = max(0.0, rr)
 
             x = rr * math.cos(theta)
             y = rr * math.sin(theta)
 
-            # Kollisionscheck
+            # Collision check
             ok = True
             for (px, py, peff) in placed:
                 if math.hypot(x - px, y - py) < (eff_r + peff + overlap_margin_mm):
@@ -214,7 +214,6 @@ def draw_card(
 ):
     radius_mm = diameter_mm / 2
     p = canvas.beginPath()
-    # Use radius, not diameter
     p.circle(cx, cy, _mm(radius_mm))
     canvas.saveState()
     canvas.clipPath(p, stroke=0, fill=0)
@@ -232,8 +231,18 @@ def draw_card(
 
         if sys["type"] == "image":
             img: ImageReader = sys["image"]
-            base = _mm(diameter_mm * 0.2) * scale
-            canvas.drawImage(img, -base / 2, -base / 2, width=base, height=base, mask='auto')
+            # Square bounding box around symbol center
+            bbox = _mm(diameter_mm * 0.20) * scale
+
+            # Draw in a box, but keep the aspect ratio and center
+            canvas.drawImage(
+                img,
+                -bbox / 2, -bbox / 2,  # zentriert um (0,0)
+                width=bbox, height=bbox,
+                mask='auto',
+                preserveAspectRatio=True,  # <<< AR wird bewahrt
+                anchor='c'  # <<< in der Box zentrieren
+            )
         else:
             txt = str(sys["text"])
             # honor 'font_family' if present
