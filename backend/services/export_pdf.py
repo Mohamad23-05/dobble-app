@@ -48,7 +48,7 @@ class RandomSpec:
     scale: RangeSpec = field(default_factory=lambda: RangeSpec(1.0, 1.0))
     angular_jitter_deg: float = 0.0
     radial_jitter_mm: float = 0.0
-    ring_strategy: str = "auto"
+    ring_strategy: str = "single"
 
 
 # -- Utilities --
@@ -304,6 +304,12 @@ def create_pdf(
     buf = io.BytesIO()
     # set the page size correctly
     c = canvas.Canvas(buf, pagesize=(w, h))
+
+    # Enforce a hard limit: at most 6 cards per page
+    if card.per_page > 6:
+        raise ValueError("card.per_page must be <= 6")
+    if card.per_page < 1:
+        raise ValueError("card.per_page must be >= 1")
 
     centers = paginate_cards(c, w, h, page.margin_mm, card.diameter_mm, card.per_page)
     # draw cards, paginating to fit page size

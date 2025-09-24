@@ -75,13 +75,16 @@ def generate(req: GenerateRequest):
 
 
 # -- Export PDF --
-
 class SymbolText(BaseModel):
     id: str
     type: Literal["text"]
     text: str
-    font_family: Optional[str] = "Helvetica-Bold"
-    font_weight: Optional[int] = 700
+    font_family: Optional[str] = Field(default="Helvetica-Bold", alias="fontFamily")
+    font_weight: Optional[int] = Field(default=700, alias="fontWeight")
+
+    model_config = {
+        "populate_by_name": True
+    }
 
 
 class SymbolImage(BaseModel):
@@ -96,15 +99,23 @@ SymbolDef = Union[SymbolText, SymbolImage]
 class PageOpts(BaseModel):
     size: Union[Literal["A4", "Letter"], Dict[str, float]] = "A4"
     orientation: Literal["portrait", "landscape"] = "portrait"
-    margin_mm: float = 10.0
+    margin_mm: float = Field(default=10.0, alias="marginMm")
+
+    model_config = {
+        "populate_by_name": True
+    }
 
 
 class CardOpts(BaseModel):
-    diameter_mm: float = 120.0
-    stroke_mm: float = 0.4
-    bleed_mm: float = 0.0
-    per_page: int = 2
-    cut_marks: bool = True
+    diameter_mm: float = Field(default=80.0, alias="diameterMm")
+    stroke_mm: float = Field(default=0.4, alias="strokeMm")
+    bleed_mm: float = Field(default=0.0, alias="bleedMm")
+    per_page: int = Field(default=2, alias="perPage")
+    cut_marks: bool = Field(default=True, alias="cutMarks")
+
+    model_config = {
+        "populate_by_name": True
+    }
 
 
 class RangeModel(BaseModel):
@@ -114,13 +125,17 @@ class RangeModel(BaseModel):
 
 class RandomOpts(BaseModel):
     seed: Optional[int] = None
-    rotation_deg: RangeModel = RangeModel(min=0, max=360)
+    rotation_deg: RangeModel = Field(default_factory=lambda: RangeModel(min=0, max=360), alias="rotationDeg")
     scale: RangeModel = RangeModel(min=0.8, max=1.1)
-    angular_jitter_deg: float = 6.0
-    radial_jitter_mm: float = 1.5
-    ring_strategy: Literal["auto", "single", "two_rings"] = "auto"
-    rotation_mode: Literal["any", "bounded", "steps90", "steps"] = "any"
-    steps_deg: Optional[float] = None
+    angular_jitter_deg: float = Field(default=6.0, alias="angularJitterDeg")
+    radial_jitter_mm: float = Field(default=1.5, alias="radialJitterMm")
+    ring_strategy: Literal["single"] = Field(default="single", alias="ringStrategy")
+    rotation_mode: Literal["bounded"] = Field(default="bounded", alias="rotationMode")
+    steps_deg: Optional[float] = Field(default=None, alias="stepsDeg")
+
+    model_config = {
+        "populate_by_name": True
+    }
 
     @model_validator(mode="after")
     def check_rotation(cls, values):
@@ -139,14 +154,18 @@ class RandomOpts(BaseModel):
 
 class ExportRequest(BaseModel):
     n: int
-    symbols_per_card: int
-    num_cards: int
+    symbols_per_card: int = Field(alias="symbolsPerCard")
+    num_cards: int = Field(alias="numCards")
     cards: List[List[str]]  # <-- keep as strings
     symbols: List[SymbolDef]  # <-- objects defined as SymbolText / SymbolImage
     page: PageOpts = PageOpts()
     card: CardOpts = CardOpts()
     randomization: RandomOpts = RandomOpts()
     options: Dict[str, Union[bool, int]] = {}
+
+    model_config = {
+        "populate_by_name": True
+    }
 
 
 class ExportError(BaseModel):
@@ -193,8 +212,29 @@ def export_pdf(req: ExportRequest):
     if isinstance(req.page.size, str):
         page_size = req.page.size  # "A4" | "Letter"
     else:
-        # custom size object { w_mm, h_mm }
-        page_size = (req.page.size.w_mm, req.page.size.h_mm)
+        # Accept multiple key styles for custom size
+        size_dict = req.page.size
+        # common variants
+        w = (
+                size_dict.get("w_mm")
+                or size_dict.get("w")
+                or size_dict.get("width_mm")
+                or size_dict.get("width")
+                or size_dict.get("wMm")
+                or size_dict.get("widthMm")
+        )
+        h = (
+                size_dict.get("h_mm")
+                or size_dict.get("h")
+                or size_dict.get("height_mm")
+                or size_dict.get("height")
+                or size_dict.get("hMm")
+                or size_dict.get("heightMm")
+        )
+        if w is None or h is None:
+            raise HTTPException(status_code=400, detail="Custom page.size must include width/height in mm")
+        # custom size tuple (w_mm, h_mm)
+        page_size = (float(w), float(h))
 
     page = PageSpec(
         size=page_size,

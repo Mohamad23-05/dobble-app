@@ -262,12 +262,12 @@ export async function exportPdf({
     card: {diameter_mm: 80, stroke_mm: 0.4, per_page: 6, cut_marks: true, bleed_mm: 0},
     randomization: {
       seed: null,
-      rotation_mode: 'steps90',
+      rotation_mode: 'bounded',
       rotation_deg: {min: 0, max: 360},
       scale: {min: 0.8, max: 1.1},
       angular_jitter_deg: 6,
-      radial_jitter_mm: 1.5,
-      ring_strategy: 'auto',
+      radial_jitter_mm: 2.5,
+      ring_strategy: 'single',
     },
     options: {embed_fonts: true, image_dpi: 300, safe_mode: true},
   }
