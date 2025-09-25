@@ -11,7 +11,9 @@ const year = new Date().getFullYear()
            md:flex-row md:justify-between md:px-6 md:py-5
            lg:px-8 lg:py-6"
   >
-    <DobbleLogo class="w-40 md:w-40 lg:w-52"/>
+    <RouterLink to="/" class="flex items-center">
+      <DobbleLogo class="w-40 md:w-40 lg:w-52"/>
+    </RouterLink>
     <div class="my-info">
       <p class="text-base md:text-lg lg:text-xl">
         Mohamad Kadabashi - media informatics student
