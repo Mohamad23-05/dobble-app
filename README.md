@@ -1,9 +1,65 @@
 # Dobble/Spot It! Card Generator
 
+## Introduction: Why Dobble works — finite projective planes
+
+Dobble/Spot It! decks follow one elegant rule: any two cards share exactly one symbol. You get this “for free” if you
+model a deck as a finite projective plane of order n.
+
+## [Projective plane (order n)][projective-plane]
+
+- There are exactly n² + n + 1 points and the same number of lines.
+- Each line contains n + 1 points; each point lies on n + 1 lines.
+- Any two distinct lines intersect in exactly one point.
+
+## Mapping to Dobble
+
+- Cards ↔ lines
+- Symbols ↔ points
+
+Therefore:
+
+- Each card has n + 1 symbols.
+- Any two cards share exactly one symbol (their unique intersection point).
+
+## Deck consequences
+
+- Number of cards: k = n² + n + 1
+- Symbols per card: sc = n + 1
+- Total distinct symbols: n² + n + 1
+
+## Example: Fano plane (n = 2)
+
+- k = 7 cards, sc = 3 symbols per card.
+- Every pair of cards overlaps in exactly one symbol.
+
+## Which orders n are allowed?
+
+- For readability and practicality in this generator, the allowed values are: n ∈ {2, 3, 4, 5, 7}.
+- For some other values (e.g., 6 or 10) no projective plane exists — the generator disables those.
+
+## Quick reference
+
+| n | Cards n²+n+1 | Symbols per card n+1 |
+|---|--------------|----------------------|
+| 2 | 7            | 3                    |
+| 3 | 13           | 4                    |
+| 4 | 21           | 5                    |
+| 5 | 31           | 6                    |
+| 7 | 57           | 8                    |
+
+## Implementation note
+
+This generator builds decks from a PG(2, n) incidence structure and assigns real symbols (text/icons/images) to points.
+The resulting decks automatically satisfy the Dobble property.
+
 Generate mathematically-correct Dobble/Spot It!-style card sets and export them as printable PDFs. The project includes:
 
 - A FastAPI backend that validates parameters, generates card layouts, and renders PDFs.
 - A Vue 3 + Vite + TypeScript frontend for an interactive UI.
+
+<strong style='color: red'>Trademark</strong>: Dobble is a trademark of [Asmodee][asmodee]. This project is an
+educational, open-source tool and is not
+affiliated with Asmodee.
 
 ## Features
 
@@ -194,3 +250,7 @@ Base path: /dobble
 
 - Invalid input on validation:
     - Some combinations of n, k, sc are mathematically invalid. Use the /validate endpoint first.
+
+[asmodee]: https://www.asmodee.com/
+
+[projective-plane]: https://en.wikipedia.org/wiki/Projective_plane
