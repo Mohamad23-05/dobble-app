@@ -179,7 +179,7 @@ Base path: /dobble
        ```
 - The response is a PDF file with Content-Disposition set to attachment.
 - The PDF will be generated in the current working directory.
-- The PDF will be named `"dobble_cards.pdf"`. if it failed to open, so the `payload.json` file has error/s
+- The PDF will be named `"dobble_cards.pdf"`. if it failed to open, the `payload.json` file has error/s.
 
 ## Common Troubleshooting
 
