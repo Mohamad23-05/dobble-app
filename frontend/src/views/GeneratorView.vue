@@ -150,8 +150,7 @@ async function onExport() {
       cards: cards.value,
       symbolDefs: defs,
       onProgress: ({phase, percent}) => {
-        // ensure "processing" appears between upload and download (handled inside exportPdf),
-        // here we just reflect the reported state
+        // Just reflect reported state; exportPdf ensures proper phase ordering
         exportPhase.value = phase
         exportPercent.value = percent ?? null
       }
@@ -176,6 +175,11 @@ onUnmounted(() => {
   if (exportDoneTimer) {
     window.clearTimeout(exportDoneTimer)
     exportDoneTimer = null
+  }
+  // Cleanup banner auto-hide timer to avoid leaks if the component unmounts while the timer is active
+  if (bannerTimer) {
+    window.clearTimeout(bannerTimer)
+    bannerTimer = null
   }
 })
 </script>
@@ -424,7 +428,7 @@ onUnmounted(() => {
     <!-- Loading -->
     <div v-if="loading"
          class="status text-Auburn items-start gap-2 rounded-[12px] text-sm px-3 py-2 bg-Vanilla/70 border border-[color:var(--color-Auburn)] md:max-w-3xl">
-      Checking…
+      Because the server shut down in inactivity, it will take 1-2 minutes to start up again...
     </div>
 
     <!-- Result -->

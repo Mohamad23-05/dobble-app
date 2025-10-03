@@ -1,22 +1,26 @@
 import {ref, computed, watch} from 'vue'
 import axios from 'axios'
 
-const base = import.meta.env.VITE_API_BASE;           // REQUIRED
-const backendLink = (base ?? '').replace(/\/$/, '');
+// Backend base URL: prefer env, fall back to local dev server
+const backendBase = import.meta.env.VITE_API_BASE ?? 'http://127.0.0.1:8000'
 
-if (!backendLink) {
-  // either: throw new Error('VITE_API_BASE is not set')
-  // or: backendBase = ''; and call '/dobble/...' via same-origin proxy
-  Error('VITE_API_BASE is not set')
-
-}
-
-
-// finite letters set (you said you only allow A..Z)
+// Finite letters set and feasible orders helper
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
 const VALID_ORDERS = [2, 3, 4, 5, 7, 8, 9, 13]
 const feasibleOrders = (max: number) =>
   VALID_ORDERS.filter(n => n * n + n + 1 <= max)
+
+// Shared types to keep exports tidy and self-documented
+type ExportPhase = 'upload' | 'processing' | 'download' | 'done'
+type TextSymbolDef = {
+  id: string;
+  type: 'text';
+  text: string;
+  font_family?: string;
+  font_weight?: number
+}
+type ImageSymbolDef = { id: string; type: 'image'; src: string }
+type SymbolDef = TextSymbolDef | ImageSymbolDef
 
 export function userGenerator() {
   // -------- form state --------
@@ -28,7 +32,7 @@ export function userGenerator() {
     mode.value === 'n' ? 'N' : mode.value === 'k' ? 'C' : 'S/C'
   )
 
-  // helper: clear current validation/result state (used when inputs change)
+  // Reset current validation/result state (used when inputs change)
   function resetValidationState() {
     error.value = null
     valid.value = false
@@ -40,16 +44,12 @@ export function userGenerator() {
     // selectedSymbols.value = []
   }
 
-  // reset input so placeholder becomes visible + clear messages/results
+  // Reset input so placeholder becomes visible + clear messages/results
   watch(mode, () => {
     howMany.value = null
     resetValidationState()
   })
-
-  // also clear messages/results when the quantity changes (n/k/s_c edited)
-  watch(howMany, () => {
-    resetValidationState()
-  })
+  watch(howMany, resetValidationState)
 
   // -------- derived / validation --------
   const n = ref<number | null>(null)
@@ -68,9 +68,8 @@ export function userGenerator() {
   // Button state / text
   const canGenerate = computed(() => {
     if (!valid.value || !n.value || !totalSymbols.value) return false
-    // symbols require exact user selection count
+    // images: require exact user selection count
     if (notation.value === 's') return selectedSymbols.value.length === totalSymbols.value
-    // numbers/letters are auto-built in generate()
     return true
   })
 
@@ -101,11 +100,11 @@ export function userGenerator() {
     selectedSymbols.value = []
 
     try {
-      const {data} = await axios.get(`${backendLink}/dobble/validate`, {
+      const {data} = await axios.get(`${backendBase}/dobble/validate`, {
         params: {mode: mode.value, how_many: howMany.value ?? 0},
       })
       if (!data.valid) {
-        error.value = data.message;
+        error.value = data.message
         return
       }
 
@@ -113,9 +112,9 @@ export function userGenerator() {
       symbolsPerCard.value = data.symbols_per_card
       totalSymbols.value = data.num_cards
 
-      // if letters are finite, ensure we have enough
+      // letters mode: ensure we have enough letters for the requested deck size
       if (notation.value === 'l') {
-        const need = totalSymbols.value!
+        const need = totalSymbols.value ?? 0
         const have = LETTERS.length
         if (need > have) {
           const feas = feasibleOrders(have)
@@ -136,7 +135,7 @@ export function userGenerator() {
     }
   }
 
-  // helper: build numbers quickly
+  // Build number labels quickly: "0", "1", ..., count-1
   const buildNumbers = (count: number) =>
     Array.from({length: count}, (_, i) => String(i))
 
@@ -150,13 +149,13 @@ export function userGenerator() {
     } else if (notation.value === 'l') {
       payloadSymbols = LETTERS.slice(0, totalSymbols.value)
     } else {
-      // symbols
+      // symbols: require exact selection count
       if (selectedSymbols.value.length !== totalSymbols.value) return
       payloadSymbols = selectedSymbols.value.slice()
     }
 
     try {
-      const {data} = await axios.post(`${backendLink}/dobble/generate`, {
+      const {data} = await axios.post(`${backendBase}/dobble/generate`, {
         n: n.value,
         symbols: payloadSymbols,
       })
@@ -185,12 +184,15 @@ export function userGenerator() {
   }
 }
 
-
-// Build `symbols` array for /export/pdf from your notation & selections.
-// For numbers/letters, ids are the text itself; for images, ids are the data URL.
-export function buildSymbolDefs(notation: 'n' | 'l' | 's', totalSymbols: number, selectedSymbols: string[]) {
+// Build `symbols` array for /export/pdf from notation & selections.
+// For numbers/letters, ids are the text itself; for images, ids are the image src (often data URL).
+export function buildSymbolDefs(
+  notation: 'n' | 'l' | 's',
+  totalSymbols: number,
+  selectedSymbols: string[]
+): SymbolDef[] {
   if (notation === 's') {
-    // images: data URLs (or file URLs) the user picked
+    // images: de-duplicate and cap to totalSymbols
     const uniq = Array.from(new Set(selectedSymbols.slice(0, totalSymbols)))
     return uniq.map(src => ({id: src, type: 'image' as const, src}))
   }
@@ -202,7 +204,7 @@ export function buildSymbolDefs(notation: 'n' | 'l' | 's', totalSymbols: number,
         type: 'text' as const,
         text: t,
         font_family: 'Helvetica-Bold',
-        font_weight: 700
+        font_weight: 700,
       }
     })
   }
@@ -213,11 +215,11 @@ export function buildSymbolDefs(notation: 'n' | 'l' | 's', totalSymbols: number,
     type: 'text' as const,
     text: t,
     font_family: 'Helvetica-Bold',
-    font_weight: 700
+    font_weight: 700,
   }))
 }
 
-// Call this from your component to download the PDF.
+// Download the generated PDF. Reports progress via onProgress callback.
 export async function exportPdf({
                                   n,
                                   symbolsPerCard,
@@ -230,14 +232,8 @@ export async function exportPdf({
   symbolsPerCard: number
   numCards: number
   cards: string[][]
-  symbolDefs: Array<
-    | { id: string; type: 'text'; text: string; font_family?: string; font_weight?: number }
-    | { id: string; type: 'image'; src: string }
-  >
-  onProgress?: (info: {
-    phase: 'upload' | 'processing' | 'download' | 'done';
-    percent?: number
-  }) => void
+  symbolDefs: SymbolDef[]
+  onProgress?: (info: { phase: ExportPhase; percent?: number }) => void
 }) {
   // Convert any non-data image src -> data URL, but keep ids as-is
   const {urlToDataUrl} = await import('@/composables/dataUrl')
@@ -266,7 +262,7 @@ export async function exportPdf({
       rotation_deg: {min: 0, max: 360},
       scale: {min: 0.5, max: 1.2},
       angular_jitter_deg: 3,
-      radial_jitter_mm: 1.2,
+      radial_jitter_mm: 2.5,
       ring_strategy: 'single',
     },
     options: {embed_fonts: true, image_dpi: 300, safe_mode: true},
@@ -279,7 +275,7 @@ export async function exportPdf({
     let emittedProcessing = false
     let downloadStarted = false
 
-    const res = await axios.post(`${backendLink}/dobble/export/pdf`, payload, {
+    const res = await axios.post(`${backendBase}/dobble/export/pdf`, payload, {
       responseType: 'blob',
       onUploadProgress: e => {
         // Some browsers don't provide total; still report phase
@@ -313,12 +309,12 @@ export async function exportPdf({
         }
         onProgress?.({
           phase: 'download',
-          percent: Math.round((e.loaded / e.total) * 100)
+          percent: Math.round((e.loaded / e.total) * 100),
         })
       },
     })
 
-    // In cases with tiny responses, it's possible no download progress fired.
+    // Small responses may skip download progress entirely: still show processing once
     if (uploadComplete && !downloadStarted && !emittedProcessing) {
       onProgress?.({phase: 'processing'})
       emittedProcessing = true
@@ -329,7 +325,6 @@ export async function exportPdf({
     const a = document.createElement('a')
     a.href = url
     a.download = 'dobble_cards.pdf'
-    // a rel/target are optional; click then revoke URL on next tick to avoid early revocation issues
     a.click()
     window.setTimeout(() => URL.revokeObjectURL(url), 0)
 
