@@ -20,7 +20,7 @@ Generate mathematically-correct Dobble/Spot It!-style card sets and export them 
 
 - Backend: FastAPI (Python 3.13+)
 - Frontend: Vue 3, Vite, TypeScript
-- Package managers: virtualenv + pip (Python), npm (Node.js)
+- Package managers: pip (Python), npm (Node.js)
 
 ## Getting Started
 
