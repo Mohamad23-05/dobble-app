@@ -1,5 +1,3 @@
-from http.client import HTTPException
-
 from fastapi import APIRouter, Query, HTTPException, Response
 from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import List, Literal, Optional, Dict, Union
@@ -34,7 +32,8 @@ def validate(
         params = get_params(symbols_per_card=how_many)
 
     if params is None:
-        return ValidateResponse(valid=False, message="Invalid input")
+        # Return a proper error status instead of 200
+        raise HTTPException(status_code=400, detail="you entered an invalid parameter")
 
     return ValidateResponse(
         valid=True,
