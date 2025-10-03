@@ -2,7 +2,7 @@ import {ref, computed, watch} from 'vue'
 import axios from 'axios'
 
 // Backend base URL: prefer env, fall back to local dev server
-const backendBase = import.meta.env.VITE_API_BASE ?? 'http://127.0.0.1:8000'
+const backendBase = import.meta.env.VITE_API_BASE;
 
 // Finite letters set and feasible orders helper
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')

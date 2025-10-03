@@ -89,24 +89,27 @@ affiliated with Asmodee.
 ### 1) Backend Setup
 
 - Create and activate a virtual environment:
-    - macOS/Linux:
      ```Bash
+    #macOS/Linux:
     python3 -m venv .venv
     source .venv/bin/activate
     ```
-    - Windows (PowerShell):
-     ```Bash
-    py -m venv .venv
-    venv\Scripts\Activate.ps1
+    ```Bash
+     #Windows (PowerShell):
+     py -m venv .venv
     ```
 - Install dependencies:
   ```Bash
-  pip install -r requirements.txt
+  pip install -r backend/requirements.txt
   ```
-- Start the backend (replace app module path with your actual entrypoint if different):
-    ```Bash 
-    uvicorn app.main:app --reload --port 8000 
-    ```
+- Start the backend:
+  ```Bash 
+  #Linux/macOS
+  uvicorn backend.main:app --reload --port 8000
+  
+  #Windows (PowerShell)
+  python -m uvicorn backend.main:app --reload --port 8000 
+  ```
 
 #### Notes:
 
@@ -118,11 +121,12 @@ affiliated with Asmodee.
 ### 2) Frontend Setup
 
 - Install dependencies:
-    ````Bash 
+    ````Bash
+    cd frontend 
     npm install
     ````
 - Configure API base URL for the frontend:
-    - Create a file named `.env.local` in the frontend root (or root if single workspace) with:
+    - Create a file named `.env.local` in the frontend root with:
     ````Bash
     VITE_API_BASE=http://localhost:8000
    ````
@@ -142,8 +146,7 @@ The app will run at the URL printed by Vite (commonly [http://localhost:5173](ht
 
 ## API Quick Reference
 
-Base path: /dobble
-
+- Base path: /dobble
 - Validate parameters
     - GET /dobble/validate
     - Query params:
@@ -151,14 +154,14 @@ Base path: /dobble
         - how_many: number
 
     - Example:
-    ```Bash
-    curl "http://localhost:8000/dobble/validate?mode=n&how_many=2"
-    ```
+      ```Bash
+       curl "http://localhost:8000/dobble/validate?mode=n&how_many=2"
+      ```
     - Generate card indices mapped to provided symbols
         - POST /dobble/generate
         - Body:
-      ```JSON
-      {
+       ```JSON
+       {
           "n": 2,
           "symbols": [
               "S1",
@@ -169,13 +172,13 @@ Base path: /dobble
               "S6",
               "S7"
           ]
-      }
+       }
       ```
 - Export a printable PDF
     - POST /dobble/export/pdf
     - Content-Type: application/json
     - Body shape (simplified):
-    ```JSON
+  ```JSON
     {
       "n": 2,
       "symbolsPerCard": 3,
@@ -222,17 +225,26 @@ Base path: /dobble
       },
       "options": {}
    }
-   ```
+    ```
 - Example for generating and exporting a PDF:
     1. Create a file named `payload.json` (already included in `backend` directory) in your working directory with your
        request body, like the one above.
     2. Run the following command:
-       ```Bash
-       curl -X POST http://localhost:8000/dobble/export/pdf \
-            -H "Content-Type: application/json" \
-            -d @payload.json \
-            -o dobble_cards.pdf
-       ```
+    ```Bash
+    #Linux/MacOS
+    curl -X POST http://localhost:8000/dobble/export/pdf \
+        -H "Content-Type: application/json" \
+        -d @backend/payload.json \
+        -o dobble_cards.pdf
+    ```
+   ```Bash
+    #Windows (PowerShell)
+    Invoke-WebRequest -Uri "http://localhost:8000/dobble/export/pdf" `
+    -Method POST `
+    -Headers @{ "Content-Type" = "application/json" } `
+    -InFile "payload.json" `
+    -OutFile "dobble_cards.pdf" 
+    ```
 - The response is a PDF file with Content-Disposition set to attachment.
 - The PDF will be generated in the current working directory.
 - The PDF will be named `"dobble_cards.pdf"`. if it fails to open, the `payload.json` file has error/s.
