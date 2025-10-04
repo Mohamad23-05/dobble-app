@@ -12,7 +12,13 @@
         I'm Mohamad Kadabashi and studying media informatics at HTWD.
       </h2>
       <p>
-        I have implemented a generator here to be able to construct a ‘Dobble’ card set.
+        I have implemented this generator to be able to construct a ‘Dobble’ card set.
+        The generator is based on the mathematical concept of a projective plane.
+      </p>
+      <p>
+        It is only for educational purposes. If you want to buy the game Dobble, you can visit
+        the official website: <a
+        href="https://www.dobblegame.com/en/homepage/" target="_blank" rel="noopener">Dobble</a>.
       </p>
     </div>
   </div>
