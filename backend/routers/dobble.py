@@ -3,20 +3,40 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import List, Literal, Optional, Dict, Union
 
 from ..services.dobble_logic import get_params, generate_projective_plane as gen_plane
-from ..services.export_pdf import (
-    PageSpec, CardSpec, RandomSpec, RangeSpec, create_pdf, _decode_data_url
-)
+from ..services.export_pdf import (PageSpec, CardSpec, RandomSpec, RangeSpec, create_pdf, _decode_data_url)
+from ..variables.varsForApiExamples import (symbol, cards, symbols)
 
 router = APIRouter(prefix="/dobble", tags=["dobble"])
 
 
-class ValidateResponse(BaseModel):
-    valid: bool
-    message: str
+# Common base to keep alias handling and future shared config in one place
+class ApiResponse(BaseModel):
+    model_config = {
+        "populate_by_name": True
+    }
+
+
+class ValidateResponse(ApiResponse):
+    valid: bool = True
+    message: str = "Valid input"
     n: Optional[int] = None
     symbols_per_card: Optional[int] = None
     num_cards: Optional[int] = None
     total_symbols: Optional[int] = None
+
+    model_config = {
+        "populate_by_name": True,
+        "json_schema_extra": {
+            "example": {
+                "valid": True,
+                "message": "Valid input",
+                "n": 2,
+                "symbolsPerCard": 3,
+                "numCards": 7,
+                "totalSymbols": 7
+            }
+        }
+    }
 
 
 @router.get("/validate", response_model=ValidateResponse)
@@ -47,13 +67,13 @@ def validate(
 
 class GenerateRequest(BaseModel):
     n: int = Field(..., ge=2)
-    symbols: List[str]  # length must be n^2 + n + 1
+    symbols: List[str] = Field(default=symbol)  # length must be n^2 + n + 1
 
 
-class GenerateResponse(BaseModel):
-    symbols_per_card: int
-    num_cards: int
-    cards: List[List[str]]
+class GenerateResponse(ApiResponse):
+    symbols_per_card: int = Field(default=3, alias="symbolsPerCard")
+    num_cards: int = Field(default=7, alias="numCards")
+    cards: List[List[str]] = Field(default=cards, alias="cards")
 
 
 @router.post("/generate", response_model=GenerateResponse)
@@ -152,11 +172,12 @@ class RandomOpts(BaseModel):
 
 
 class ExportRequest(BaseModel):
-    n: int
-    symbols_per_card: int = Field(alias="symbolsPerCard")
-    num_cards: int = Field(alias="numCards")
-    cards: List[List[str]]  # <-- keep as strings
-    symbols: List[SymbolDef]  # <-- objects defined as SymbolText / SymbolImage
+    n: int = Field(default=2, alias="n")
+    symbols_per_card: int = Field(default=3, alias="symbolsPerCard")
+    num_cards: int = Field(default=7, alias="numCards")
+    cards: List[List[str]] = Field(default=cards, alias="cards")
+    symbols: List[SymbolDef] = Field(
+        default=symbols, alias="symbols")  # for educational purposes, we keep the original symbol list of texts
     page: PageOpts = PageOpts()
     card: CardOpts = CardOpts()
     randomization: RandomOpts = RandomOpts()
@@ -167,9 +188,19 @@ class ExportRequest(BaseModel):
     }
 
 
-class ExportError(BaseModel):
+class ExportError(ApiResponse):
     error: str
     message: str
+
+    model_config = {
+        "populate_by_name": True,
+        "json_schema_extra": {
+            "example": {
+                "error": "Bad Request",
+                "message": "Symbol 'S42' referenced on card 3 but not provided"
+            }
+        }
+    }
 
 
 def _build_symbol_lookup(symbols: List[SymbolDef]) -> Dict[str, Dict]:
